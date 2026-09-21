@@ -1,0 +1,35 @@
+# Бинарники Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/bin/
+services/*/cmd/*/[a-z]*
+
+# Артефакты сборки и тестов
+*.test
+*.out
+coverage.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Окружение и секреты
+.env
+.env.local
+*.pem
+*.key
+
+# Логи
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Workspace (опционально — см. ниже)
+# go.work
+# go.work.sum

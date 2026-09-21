@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package bank.auth.v1;
+
+option go_package = "github.com/Mazik-kun/mini-core/contracts/gen/bank/auth/v1;authv1";
+
+// AuthService отвечает за регистрацию, аутентификацию и работу с токенами.
+service AuthService {
+  // Register создаёт нового пользователя с ролью CLIENT.
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+
+  // Login проверяет email и пароль, возвращает пару access + refresh токенов.
+  rpc Login(LoginRequest) returns (LoginResponse);
+}
+
+message RegisterRequest {
+  string email    = 1;
+  string password = 2;
+}
+
+message RegisterResponse {
+  string user_id = 1;
+  string email   = 2;
+}
+
+message LoginRequest {
+  string email    = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string access_token  = 1;
+  string refresh_token = 2;
+  int64  expires_in    = 3;
+}

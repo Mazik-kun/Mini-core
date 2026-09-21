@@ -1,0 +1,15 @@
+version: v2
+
+clean: true
+
+plugins:
+  - local: protoc-gen-go
+    out: ../contracts/gen
+    opt:
+      - paths=source_relative
+
+  - local: protoc-gen-go-grpc
+    out: ../contracts/gen
+    opt:
+      - paths=source_relative
+      - require_unimplemented_servers=false
