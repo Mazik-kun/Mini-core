@@ -19,11 +19,12 @@ import (
 )
 
 func main() {
+	loadEnv()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	
+
 	addr := os.Getenv("AUTH_GRPC_ADDR")
 	if addr == "" {
 		addr = ":50051"
@@ -94,4 +95,8 @@ func main() {
 		grpcServer.Stop()
 	}
 
+}
+
+func loadEnv() {
+	panic("unimplemented")
 }

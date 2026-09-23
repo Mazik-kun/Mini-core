@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	authv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/auth/v1"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/postgres/db"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/domain/password"
+	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -21,18 +24,40 @@ func newAuthServer(log *slog.Logger, queries *db.Queries) *authServer {
 }
 
 func (s *authServer) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
-	s.log.Info("register called", "email", req.GetEmail())
-
-	if req.GetEmail() == "" {
+	email := req.GetEmail()
+	s.log.Info("register called", "email", email)
+	if email == "" {
 		return nil, status.Error(codes.InvalidArgument, "email is required")
 	}
-	if req.GetPassword() == "" {
+	pass := req.GetPassword()
+	if pass == "" {
 		return nil, status.Error(codes.InvalidArgument, "password is required")
+	}
+	passwordHash, err := password.HashPassword(pass)
+
+	if err != nil {
+		s.log.Error("failed to hash paasword", "err", err)
+		return nil, status.Error(codes.Internal, "failed to hash password")
+	}
+	user, err := s.queries.CreateUser(ctx, db.CreateUserParams{
+		Email:        email,
+		PasswordHash: passwordHash,
+		Role:         "CLIENT",
+	})
+
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			s.log.Info("email already existrs", "email", email)
+			return nil, status.Error(codes.AlreadyExists, "email already exists")
+		}
+		s.log.Error("create user failed", "err", err)
+		return nil, status.Error(codes.Internal, "internal error")
 	}
 
 	return &authv1.RegisterResponse{
-		UserId: "00000000-0000-0000-0000-000000000000",
-		Email:  req.GetEmail(),
+		UserId: user.ID.String(),
+		Email:  user.Email,
 	}, nil
 
 }
