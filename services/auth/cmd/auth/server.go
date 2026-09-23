@@ -5,17 +5,19 @@ import (
 	"log/slog"
 
 	authv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/auth/v1"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/postgres/db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type authServer struct {
 	authv1.UnimplementedAuthServiceServer
-	log *slog.Logger
+	log     *slog.Logger
+	queries *db.Queries
 }
 
-func newAuthServer(log *slog.Logger) *authServer {
-	return &authServer{log: log}
+func newAuthServer(log *slog.Logger, queries *db.Queries) *authServer {
+	return &authServer{log: log, queries: queries}
 }
 
 func (s *authServer) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
