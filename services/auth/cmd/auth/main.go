@@ -10,6 +10,8 @@ import (
 	"time"
 
 	authv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/auth/v1"
+	"github.com/Mazik-kun/mini-core/pkg/config"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/grpc/interceptors"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/postgres/db"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
@@ -19,7 +21,7 @@ import (
 )
 
 func main() {
-	loadEnv()
+	config.LoadEnv()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -60,7 +62,9 @@ func main() {
 
 	queries := db.New(pool)
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(interceptors.Recovery(logger)),
+	)
 	srv := newAuthServer(logger, queries)
 	authv1.RegisterAuthServiceServer(grpcServer, srv)
 
@@ -95,8 +99,4 @@ func main() {
 		grpcServer.Stop()
 	}
 
-}
-
-func loadEnv() {
-	panic("unimplemented")
 }
