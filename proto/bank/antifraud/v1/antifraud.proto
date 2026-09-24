@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package bank.antifraud.v1;
+
+import "bank/common/v1/common.proto";
+
+option go_package = "github.com/Mazik-kun/mini-core/contracts/gen/bank/antifraud/v1;antifraudv1";
+
+// Verdict — решение антифрода.
+enum Verdict {
+    VERDICT_UNSPECIFIED = 0;
+    VERDICT_ALLOW = 1;
+    VERDICT_DENY = 2;
+}
+
+service AntifraudService {
+    rpc CheckTransfer(CheckTransferRequest) returns (CheckTransferResponse);
+    rpc ListRules(ListRulesRequest) returns (ListRulesResponse);   // OFFICER
+    rpc UpdateRule(UpdateRuleRequest) returns (Rule);              // OFFICER
+}
+
+message CheckTransferRequest {
+    string from_account_id = 1;
+    string to_account_id = 2;
+    bank.common.v1.Money amount = 3;
+    string customer_id = 4;
+}
+
+message CheckTransferResponse {
+    Verdict verdict = 1;
+    repeated string reasons = 2;   // сработавшие правила
+    double risk_score = 3;         // 0..1; здесь double уместен, это не деньги
+}
+
+message Rule {
+    string rule_id = 1;
+    string name = 2;
+    string description = 3;
+    bool enabled = 4;
+    // Пороги и параметры — зависят от правила. Для простоты JSON-строкой.
+    string params_json = 5;
+}
+
+message ListRulesRequest {
+    bank.common.v1.PageRequest page = 1;
+}
+
+message ListRulesResponse {
+    repeated Rule rules = 1;
+    bank.common.v1.PageResponse page = 2;
+}
+
+message UpdateRuleRequest {
+    string rule_id = 1;
+    bool enabled = 2;
+    string params_json = 3;
+}

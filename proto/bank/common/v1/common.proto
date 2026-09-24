@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package bank.common.v1;
+
+option go_package = "github.com/Mazik-kun/mini-core/contracts/gen/bank/common/v1;commonv1";
+
+// Money — денежная сумма в минорных единицах (тетри, копейки).
+// Никогда не используем float/double для денег.
+message Money {
+    int64 amount = 1;      // в минорных единицах
+    string currency = 2;   // ISO 4217, например "GEL"
+}
+
+// PageRequest — запрос страницы списка (cursor-based).
+message PageRequest {
+    int32 page_size = 1;
+    string page_token = 2;
+}
+
+// PageResponse — метаданные страницы ответа.
+message PageResponse {
+    string next_page_token = 1;
+}

@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package bank.ledger.v1;
+
+import "google/protobuf/timestamp.proto";
+import "bank/common/v1/common.proto";
+
+option go_package = "github.com/Mazik-kun/mini-core/contracts/gen/bank/ledger/v1;ledgerv1";
+
+// TransactionStatus — состояние транзакции.
+enum TransactionStatus {
+    TRANSACTION_STATUS_UNSPECIFIED = 0;
+    TRANSACTION_STATUS_PENDING = 1;
+    TRANSACTION_STATUS_COMPLETED = 2;
+    TRANSACTION_STATUS_DECLINED = 3;
+    TRANSACTION_STATUS_FAILED = 4;
+}
+
+// TransactionType — тип операции.
+enum TransactionType {
+    TRANSACTION_TYPE_UNSPECIFIED = 0;
+    TRANSACTION_TYPE_TRANSFER = 1;
+    TRANSACTION_TYPE_DEPOSIT = 2;
+}
+
+// EntryDirection — сторона проводки в двойной записи.
+enum EntryDirection {
+    ENTRY_DIRECTION_UNSPECIFIED = 0;
+    ENTRY_DIRECTION_DEBIT = 1;
+    ENTRY_DIRECTION_CREDIT = 2;
+}
+
+service LedgerService {
+    rpc Transfer(TransferRequest) returns (Transaction);
+    rpc Deposit(DepositRequest) returns (Transaction);            // OFFICER
+    rpc GetTransaction(GetTransactionRequest) returns (Transaction);
+    rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
+    rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+}
+
+message Transaction {
+    string transaction_id = 1;
+    string from_account_id = 2;
+    string to_account_id = 3;
+    bank.common.v1.Money amount = 4;
+    TransactionStatus status = 5;
+    TransactionType type = 6;
+    string idempotency_key = 7;
+    google.protobuf.Timestamp created_at = 8;
+}
+
+message TransferRequest {
+    string from_account_id = 1;
+    string to_account_id = 2;
+    bank.common.v1.Money amount = 3;
+    string idempotency_key = 4;
+}
+
+message DepositRequest {
+    string account_id = 1;
+    bank.common.v1.Money amount = 2;
+    string idempotency_key = 3;
+}
+
+message GetTransactionRequest {
+    string transaction_id = 1;
+}
+
+message ListTransactionsRequest {
+    string account_id = 1;
+    bank.common.v1.PageRequest page = 2;
+    google.protobuf.Timestamp from = 3;
+    google.protobuf.Timestamp to = 4;
+}
+
+message ListTransactionsResponse {
+    repeated Transaction transactions = 1;
+    bank.common.v1.PageResponse page = 2;
+}
+
+message GetBalanceRequest {
+    string account_id = 1;
+}
+
+message GetBalanceResponse {
+    bank.common.v1.Money balance = 1;
+}

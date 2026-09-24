@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package bank.account.v1;
+
+import "google/protobuf/timestamp.proto";
+import "bank/common/v1/common.proto";
+
+option go_package = "github.com/Mazik-kun/mini-core/contracts/gen/bank/account/v1;accountv1";
+
+// AccountStatus — состояние счёта.
+enum AccountStatus {
+    ACCOUNT_STATUS_UNSPECIFIED = 0;
+    ACCOUNT_STATUS_ACTIVE = 1;
+    ACCOUNT_STATUS_BLOCKED = 2;
+    ACCOUNT_STATUS_CLOSED = 3;
+}
+
+// AccountType — тип счёта.
+enum AccountType {
+    ACCOUNT_TYPE_UNSPECIFIED = 0;
+    ACCOUNT_TYPE_CHECKING = 1;
+    ACCOUNT_TYPE_SAVINGS = 2;
+}
+
+service AccountService {
+    rpc OpenAccount(OpenAccountRequest) returns (Account);
+    rpc GetAccount(GetAccountRequest) returns (Account);
+    rpc ListAccounts(ListAccountsRequest) returns (ListAccountsResponse);
+    rpc BlockAccount(BlockAccountRequest) returns (Account);   // OFFICER
+    rpc CloseAccount(CloseAccountRequest) returns (Account);
+    rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+}
+
+message Account {
+    string account_id = 1;
+    string customer_id = 2;
+    string account_number = 3;
+    string currency = 4;
+    AccountType account_type = 5;
+    AccountStatus status = 6;
+    google.protobuf.Timestamp created_at = 7;
+}
+
+message OpenAccountRequest {
+    string customer_id = 1;
+    string currency = 2;
+    AccountType account_type = 3;
+}
+
+message GetAccountRequest {
+    string account_id = 1;
+}
+
+message ListAccountsRequest {
+    string customer_id = 1;
+    bank.common.v1.PageRequest page = 2;
+}
+
+message ListAccountsResponse {
+    repeated Account accounts = 1;
+    bank.common.v1.PageResponse page = 2;
+}
+
+message BlockAccountRequest {
+    string account_id = 1;
+    string reason = 2;
+}
+
+message CloseAccountRequest {
+    string account_id = 1;
+}
+
+message GetBalanceRequest {
+    string account_id = 1;
+}
+
+message GetBalanceResponse {
+    bank.common.v1.Money balance = 1;
+}

@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package bank.kyc.v1;
+
+import "google/protobuf/timestamp.proto";
+import "bank/common/v1/common.proto";
+
+option go_package = "github.com/Mazik-kun/mini-core/contracts/gen/bank/kyc/v1;kycv1";
+
+// KycStatus — состояние заявки в статусной машине.
+enum KycStatus {
+    KYC_STATUS_UNSPECIFIED = 0;
+    KYC_STATUS_DRAFT = 1;
+    KYC_STATUS_SUBMITTED = 2;
+    KYC_STATUS_AUTO_CHECKS = 3;
+    KYC_STATUS_IN_REVIEW = 4;
+    KYC_STATUS_APPROVED = 5;
+    KYC_STATUS_REJECTED = 6;
+    KYC_STATUS_AUTO_REJECTED = 7;
+    KYC_STATUS_DOCS_REQUESTED = 8;
+}
+
+service KycService {
+    rpc SubmitApplication(SubmitApplicationRequest) returns (Application);
+    rpc GetApplication(GetApplicationRequest) returns (Application);
+    rpc ListApplications(ListApplicationsRequest) returns (ListApplicationsResponse); // OFFICER
+    rpc ClaimApplication(ClaimApplicationRequest) returns (Application);              // OFFICER
+    rpc ApproveApplication(ApproveApplicationRequest) returns (Application);          // OFFICER
+    rpc RejectApplication(RejectApplicationRequest) returns (Application);            // OFFICER
+    rpc RequestMoreDocuments(RequestMoreDocumentsRequest) returns (Application);      // OFFICER
+}
+
+message Application {
+    string application_id = 1;
+    string customer_id = 2;
+    KycStatus status = 3;
+    repeated string document_ids = 4;
+    string reviewer_id = 5;
+    string rejection_reason = 6;
+    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp updated_at = 8;
+}
+
+message SubmitApplicationRequest {
+    string customer_id = 1;
+    repeated string document_ids = 2;
+    string commentary = 3;
+}
+
+message GetApplicationRequest {
+    string application_id = 1;
+}
+
+message ListApplicationsRequest {
+    bank.common.v1.PageRequest page = 1;
+    KycStatus status_filter = 2;
+}
+
+message ListApplicationsResponse {
+    repeated Application applications = 1;
+    bank.common.v1.PageResponse page = 2;
+}
+
+message ClaimApplicationRequest {
+    string application_id = 1;
+    string reviewer_id = 2;
+}
+
+message ApproveApplicationRequest {
+    string application_id = 1;
+    string reviewer_id = 2;
+}
+
+message RejectApplicationRequest {
+    string application_id = 1;
+    string reviewer_id = 2;
+    string reason = 3;
+}
+
+message RequestMoreDocumentsRequest {
+    string application_id = 1;
+    string reviewer_id = 2;
+    string message = 3;
+}

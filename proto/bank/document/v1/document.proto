@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package bank.document.v1;
+
+import "google/protobuf/timestamp.proto";
+import "bank/common/v1/common.proto";
+
+option go_package = "github.com/Mazik-kun/mini-core/contracts/gen/bank/document/v1;documentv1";
+
+// DocumentType — тип документа клиента.
+enum DocumentType {
+    DOCUMENT_TYPE_UNSPECIFIED = 0;
+    DOCUMENT_TYPE_PASSPORT = 1;
+    DOCUMENT_TYPE_SELFIE = 2;
+    DOCUMENT_TYPE_PROOF_OF_ADDRESS = 3;
+}
+
+// DocumentStatus — состояние загрузки документа.
+enum DocumentStatus {
+    DOCUMENT_STATUS_UNSPECIFIED = 0;
+    DOCUMENT_STATUS_UPLOADED = 1;
+    DOCUMENT_STATUS_CONFIRMED = 2;
+}
+
+service DocumentService {
+    rpc InitUpload(InitUploadRequest) returns (InitUploadResponse);
+    rpc ConfirmUpload(ConfirmUploadRequest) returns (Document);
+    rpc GetDownloadUrl(GetDownloadUrlRequest) returns (GetDownloadUrlResponse);
+    rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse);
+    rpc HasRequiredDocuments(HasRequiredDocumentsRequest) returns (HasRequiredDocumentsResponse);
+}
+
+message Document {
+    string document_id = 1;
+    string customer_id = 2;
+    DocumentType document_type = 3;
+    string filename = 4;
+    string content_type = 5;
+    int64 size_bytes = 6;
+    DocumentStatus status = 7;
+    string sha256 = 8;
+    google.protobuf.Timestamp created_at = 9;
+}
+
+message InitUploadRequest {
+    string customer_id = 1;
+    DocumentType document_type = 2;
+    string filename = 3;
+    string content_type = 4;
+    int64 size_bytes = 5;
+}
+
+message InitUploadResponse {
+    string document_id = 1;
+    string upload_url = 2;
+}
+
+message ConfirmUploadRequest {
+    string document_id = 1;
+}
+
+message GetDownloadUrlRequest {
+    string document_id = 1;
+}
+
+message GetDownloadUrlResponse {
+    string download_url = 1;
+    google.protobuf.Timestamp expires_at = 2;
+}
+
+message ListDocumentsRequest {
+    string customer_id = 1;
+    bank.common.v1.PageRequest page = 2;
+}
+
+message ListDocumentsResponse {
+    repeated Document documents = 1;
+    bank.common.v1.PageResponse page = 2;
+}
+
+message HasRequiredDocumentsRequest {
+    string customer_id = 1;
+    repeated DocumentType required_types = 2;
+}
+
+message HasRequiredDocumentsResponse {
+    bool has_all = 1;
+    repeated DocumentType missing_types = 2;
+}
