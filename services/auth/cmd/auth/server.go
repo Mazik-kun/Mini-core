@@ -24,7 +24,6 @@ func newAuthServer(log *slog.Logger, queries *db.Queries) *authServer {
 }
 
 func (s *authServer) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
-	panic("test panic")
 	email := req.GetEmail()
 	s.log.Info("register called", "email", email)
 	if email == "" {
