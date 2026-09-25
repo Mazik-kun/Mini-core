@@ -64,6 +64,7 @@ func main() {
 
 	grpcServer := grpc.NewServer(
     grpc.ChainUnaryInterceptor(
+        interceptors.RequestID(),
         interceptors.Logging(logger),
         interceptors.Recovery(logger),
 		),

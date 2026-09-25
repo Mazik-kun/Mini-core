@@ -31,8 +31,9 @@ func Logging(log *slog.Logger) grpc.UnaryServerInterceptor{
 		case codes.InvalidArgument, codes.NotFound:
 			logFunc = log.Warn
 		}
-
+		requestID := RequestIDFromContext(ctx)
 		attributes := []any{
+			"request_id", requestID,
 			"method", info.FullMethod,
 			"duration", duration,
 			"code", code.String(),
@@ -41,7 +42,8 @@ func Logging(log *slog.Logger) grpc.UnaryServerInterceptor{
 		if err != nil{
 			attributes = append(attributes, "err", err)
 		}
-		logFunc("rpc", attributes...)
+		
+		logFunc("rpc",attributes...)
 		return resp, err
 	}
 }
