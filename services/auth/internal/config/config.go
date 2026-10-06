@@ -17,7 +17,7 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		GRPCAddr:    os.Getenv("AUTH_GRPC_ADDR"),
-		DatabaseURL: os.Getenv("DATABASE_URL"),
+		DatabaseURL: os.Getenv("AUTH_DATABASE_URL"),
 	}
 
 	if cfg.GRPCAddr == "" {

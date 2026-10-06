@@ -53,7 +53,7 @@ func newUseCase() (*app.RegisterUseCase, *fakeRepo) {
 
 func TestRegister_Success(t *testing.T) {
 	uc, _ := newUseCase()
-	out, err := uc.Execute(context.Background(), app.RegisterInput{
+	out, err := uc.Register(context.Background(), app.RegisterInput{
 		Email:    "Test@Example.com",
 		Password: "password123",
 	})
@@ -71,10 +71,10 @@ func TestRegister_Success(t *testing.T) {
 func TestRegister_DuplicateEmail(t *testing.T) {
 	uc, _ := newUseCase()
 	in := app.RegisterInput{Email: "a@b.com", Password: "password123"}
-	if _, err := uc.Execute(context.Background(), in); err != nil {
+	if _, err := uc.Register(context.Background(), in); err != nil {
 		t.Fatalf("first: %v", err)
 	}
-	_, err := uc.Execute(context.Background(), in)
+	_, err := uc.Register(context.Background(), in)
 	if !errors.Is(err, domain.ErrEmailAlreadyExists) {
 		t.Errorf("want ErrEmailAlreadyExists, got %v", err)
 	}
@@ -82,7 +82,7 @@ func TestRegister_DuplicateEmail(t *testing.T) {
 
 func TestRegister_InvalidEmail(t *testing.T) {
 	uc, _ := newUseCase()
-	_, err := uc.Execute(context.Background(), app.RegisterInput{
+	_, err := uc.Register(context.Background(), app.RegisterInput{
 		Email:    "not-an-email",
 		Password: "password123",
 	})
@@ -93,7 +93,7 @@ func TestRegister_InvalidEmail(t *testing.T) {
 
 func TestRegister_WeakPassword(t *testing.T) {
 	uc, _ := newUseCase()
-	_, err := uc.Execute(context.Background(), app.RegisterInput{
+	_, err := uc.Register(context.Background(), app.RegisterInput{
 		Email:    "a@b.com",
 		Password: "short",
 	})

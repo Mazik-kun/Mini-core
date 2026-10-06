@@ -29,7 +29,7 @@ type RegisterOutput struct {
 	Email  string
 }
 
-func (uc *RegisterUseCase) Execute(ctx context.Context, in RegisterInput) (RegisterOutput, error) {
+func (uc *RegisterUseCase) Register(ctx context.Context, in RegisterInput) (RegisterOutput, error) {
 	email := strings.ToLower(strings.TrimSpace(in.Email))
 
 	if err := validateEmail(email); err != nil {
@@ -44,7 +44,7 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, in RegisterInput) (Regis
 		return RegisterOutput{}, fmt.Errorf("hash password: %w", err)
 	}
 
-	created, err := uc.users.Create(ctx, domain.User{
+	user, err := uc.users.Create(ctx, domain.User{
 		Email:        email,
 		PasswordHash: hash,
 		Role:         domain.RoleClient,
@@ -53,5 +53,5 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, in RegisterInput) (Regis
 		return RegisterOutput{}, err
 	}
 
-	return RegisterOutput{UserID: created.ID, Email: created.Email}, nil
+	return RegisterOutput{UserID: user.ID, Email: user.Email}, nil
 }

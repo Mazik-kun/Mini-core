@@ -28,15 +28,15 @@ type LoginOutput struct {
 	Role   string
 }
 
-func (uc *LoginUseCase) Execute(ctx context.Context, in LoginInput) (LoginOutput, error) {
+func (uc *LoginUseCase) Login(ctx context.Context, in LoginInput) (LoginOutput, error) {
 	email := strings.ToLower(strings.TrimSpace(in.Email))
 
-	u, err := uc.users.GetByEmail(ctx, email)
+	user, err := uc.users.GetByEmail(ctx, email)
 	if err != nil {
 		return LoginOutput{}, err
 	}
 
-	ok, err := uc.hasher.Verify(in.Password, u.PasswordHash)
+	ok, err := uc.hasher.Verify(in.Password, user.PasswordHash)
 	if err != nil {
 		return LoginOutput{}, err
 	}
@@ -44,5 +44,5 @@ func (uc *LoginUseCase) Execute(ctx context.Context, in LoginInput) (LoginOutput
 		return LoginOutput{}, domain.ErrInvalidCredentials
 	}
 
-	return LoginOutput{UserID: u.ID, Role: u.Role}, nil
+	return LoginOutput{UserID: user.ID, Role: user.Role}, nil
 }

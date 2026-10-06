@@ -22,7 +22,7 @@ func NewAuthServer(register *app.RegisterUseCase, login *app.LoginUseCase, log *
 func (s *AuthServer) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
 	s.log.Info("register called", "email", req.GetEmail())
 
-	out, err := s.register.Execute(ctx, app.RegisterInput{
+	out, err := s.register.Register(ctx, app.RegisterInput{
 		Email:    req.GetEmail(),
 		Password: req.GetPassword(),
 	})
@@ -39,7 +39,7 @@ func (s *AuthServer) Register(ctx context.Context, req *authv1.RegisterRequest) 
 func (s *AuthServer) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
 	s.log.Info("login called", "email", req.GetEmail())
 
-	_, err := s.login.Execute(ctx, app.LoginInput{
+	_, err := s.login.Login(ctx, app.LoginInput{
 		Email:    req.GetEmail(),
 		Password: req.GetPassword(),
 	})

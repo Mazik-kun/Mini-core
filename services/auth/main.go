@@ -61,7 +61,7 @@ func main() {
 	authv1.RegisterAuthServiceServer(grpcServer, srv)
 
 	reflection.Register(grpcServer)
-
+	
 	healthServer := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
 	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
