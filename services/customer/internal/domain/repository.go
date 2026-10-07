@@ -17,5 +17,5 @@ type CustomerRepository interface {
 type ListFilter struct {
 	Statuses []Status
 	Limit int
-	Offset int
+	Cursor uuid.UUID
 }

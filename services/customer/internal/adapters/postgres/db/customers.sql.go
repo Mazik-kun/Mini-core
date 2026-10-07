@@ -12,18 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countCustomers = `-- name: CountCustomers :one
-SELECT count(*) FROM customers
-WHERE ($1::text[] IS NULL OR status = ANY($1::text[]))
-`
-
-func (q *Queries) CountCustomers(ctx context.Context, statuses []string) (int64, error) {
-	row := q.db.QueryRow(ctx, countCustomers, statuses)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createCustomer = `-- name: CreateCustomer :one
 INSERT INTO customers(user_id, full_name, birth_date, address, phone_number, citizenship) VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING id, user_id, full_name, birth_date, address, phone_number, citizenship, status, created_at, updated_at
@@ -115,18 +103,20 @@ const listCustomers = `-- name: ListCustomers :many
 SELECT id, user_id, full_name, birth_date, address, phone_number, citizenship, status, created_at, updated_at
 FROM customers
 WHERE ($1::text[] IS NULL OR status = ANY($1::text[]))
-ORDER BY created_at DESC
-LIMIT $3 OFFSET $2
+  AND ($2::uuid IS NULL OR (created_at, id) < 
+       (SELECT created_at, id FROM customers WHERE id = $2))
+ORDER BY created_at DESC, id DESC
+LIMIT $3
 `
 
 type ListCustomersParams struct {
 	Statuses []string
-	Off      int32
+	Cursor   pgtype.UUID
 	Lim      int32
 }
 
 func (q *Queries) ListCustomers(ctx context.Context, arg ListCustomersParams) ([]Customer, error) {
-	rows, err := q.db.Query(ctx, listCustomers, arg.Statuses, arg.Off, arg.Lim)
+	rows, err := q.db.Query(ctx, listCustomers, arg.Statuses, arg.Cursor, arg.Lim)
 	if err != nil {
 		return nil, err
 	}

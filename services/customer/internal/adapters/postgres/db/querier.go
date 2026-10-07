@@ -11,7 +11,6 @@ import (
 )
 
 type Querier interface {
-	CountCustomers(ctx context.Context, statuses []string) (int64, error)
 	CreateCustomer(ctx context.Context, arg CreateCustomerParams) (Customer, error)
 	GetCustomerByID(ctx context.Context, id uuid.UUID) (Customer, error)
 	GetCustomerByUserID(ctx context.Context, userID uuid.UUID) (Customer, error)

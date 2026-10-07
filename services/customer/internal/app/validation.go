@@ -47,7 +47,7 @@ func validateAddress(addr string) error {
 func validatePhoneNumber(phone string) error {
 	phone = strings.TrimSpace(phone)
 	if phone == "" {
-		return domain.ErrInvalidPhone
+		return domain.ErrInvalidPhoneNumber
 	}
 	// допустимы цифры, +, -, пробелы, скобки
 	for _, r := range phone {
@@ -58,7 +58,7 @@ func validatePhoneNumber(phone string) error {
 		case '+', '-', ' ', '(', ')':
 			continue
 		default:
-			return domain.ErrInvalidPhone
+			return domain.ErrInvalidPhoneNumber
 		}
 	}
 	digits := 0
@@ -68,7 +68,7 @@ func validatePhoneNumber(phone string) error {
 		}
 	}
 	if digits < 7 || digits > 15 {
-		return domain.ErrInvalidPhone
+		return domain.ErrInvalidPhoneNumber
 	}
 	return nil
 }

@@ -28,9 +28,7 @@ RETURNING id, user_id, full_name, birth_date, address, phone_number, citizenship
 SELECT id, user_id, full_name, birth_date, address, phone_number, citizenship, status, created_at, updated_at
 FROM customers
 WHERE (@statuses::text[] IS NULL OR status = ANY(@statuses::text[]))
-ORDER BY created_at DESC
-LIMIT @lim OFFSET @off;
-
--- name: CountCustomers :one
-SELECT count(*) FROM customers
-WHERE (@statuses::text[] IS NULL OR status = ANY(@statuses::text[]));
+  AND (sqlc.narg('cursor')::uuid IS NULL OR (created_at, id) < 
+       (SELECT created_at, id FROM customers WHERE id = sqlc.narg('cursor')))
+ORDER BY created_at DESC, id DESC
+LIMIT @lim;
