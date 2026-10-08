@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"uuid"
+	"github.com/google/uuid"
 
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
@@ -20,6 +20,9 @@ func newFakeRepo() *fakeRepo {
 }
 
 func (r *fakeRepo) Create(_ context.Context, c domain.Customer) (domain.Customer, error) {
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New() // Postgres генерит через DEFAULT gen_random_uuid()
+	}
 	if _, ok := r.customers[c.ID]; ok {
 		return domain.Customer{}, domain.ErrAlreadyExists
 	}
@@ -56,7 +59,13 @@ func (r *fakeRepo) List(_ context.Context, _ domain.ListFilter) ([]domain.Custom
 	return nil, nil
 }
 
-func (r *fakeRepo) UpdateStatus(_ context.Context, _ uuid.UUID, _ domain.Status) error {
+func (r *fakeRepo) UpdateStatus(_ context.Context, id uuid.UUID, status domain.Status) error {
+	c, ok := r.customers[id]
+	if !ok {
+		return domain.ErrCustomerNotFound
+	}
+	c.Status = status
+	r.customers[id] = c
 	return nil
 }
 
@@ -141,7 +150,7 @@ func TestGetCustomer_InvalidID(t *testing.T) {
 	uc := NewGetCustomerUseCase(repo)
 
 	_, err := uc.GetCustomer(context.Background(), GetCustomerInput{
-		CustomerID:    uuid.Nil(),
+		CustomerID:    uuid.Nil,
 		RequesterID:   uuid.New(),
 		RequesterRole: domain.RoleClient,
 	})
