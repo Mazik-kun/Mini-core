@@ -2,7 +2,7 @@ package app
 
 import (
 	"context"
-	"uuid"
+	"github.com/google/uuid"
 
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
@@ -22,7 +22,7 @@ type GetCustomerInput struct {
 }
 
 func (uc *GetCustomerUseCase) GetCustomer(ctx context.Context, in GetCustomerInput) (domain.Customer, error){
-	if in.CustomerID == uuid.Nil() {
+	if in.CustomerID == uuid.Nil {
 		return domain.Customer{}, domain.ErrInvalidCustomerID
 	}
 	if in.RequesterRole == domain.RoleClient && in.CustomerID != in.RequesterID {

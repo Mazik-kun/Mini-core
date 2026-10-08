@@ -2,8 +2,9 @@ package app
 
 import (
 	"context"
-	"time"
-	"uuid"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
@@ -21,7 +22,7 @@ type UpdateProfileInput struct{
 	RequesterID uuid.UUID
 	RequesterRole string
 	FullName string
-	BirthDate time.Time
+	BirthDate pgtype.Date
 	Address string
 	PhoneNumber string
 	Citizenship string

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"uuid"
+	"github.com/google/uuid"
 
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
@@ -103,7 +103,7 @@ func TestGetCustomerStatus_InvalidID(t *testing.T) {
 	uc := NewGetCustomerStatusUseCase(repo)
 
 	_, err := uc.GetCustomerStatus(context.Background(), GetCustomerStatusInput{
-		CustomerID:    uuid.Nil(),
+		CustomerID:    uuid.Nil,
 		RequesterID:   uuid.New(),
 		RequesterRole: domain.RoleClient,
 	})

@@ -2,7 +2,7 @@ package domain
 
 import (
 	"context"
-	"uuid"
+	"github.com/google/uuid"
 
 )
 

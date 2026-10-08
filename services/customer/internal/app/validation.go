@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const (
@@ -22,14 +23,15 @@ func validateFullName(name string) error {
 	return nil
 }
 
-func validateBirthDate(d time.Time) error {
-	if d.IsZero() {
+func validateBirthDate(d pgtype.Date) error {
+	if !d.Valid {
 		return domain.ErrInvalidBirthDate
 	}
-	if d.After(time.Now()) {
+	now := time.Now()
+	if d.Time.After(now) {
 		return domain.ErrInvalidBirthDate
 	}
-	age := time.Now().Year() - d.Year()
+	age := now.Year() - d.Time.Year()
 	if age < minAge || age > maxAge {
 		return domain.ErrInvalidBirthDate
 	}

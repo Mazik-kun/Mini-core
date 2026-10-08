@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"uuid"
+	"github.com/google/uuid"
 
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )

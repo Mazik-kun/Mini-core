@@ -5,7 +5,9 @@ import (
 	"errors"
 	"testing"
 	"time"
-	"uuid"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
@@ -18,7 +20,7 @@ func validUpdateProfileInput(customerID uuid.UUID) UpdateProfileInput {
 		RequesterID:   customerID,
 		RequesterRole: domain.RoleClient,
 		FullName:      "Ivan Ivanov",
-		BirthDate:     time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+		BirthDate:     pgtype.Date{Time: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC), Valid: true},
 		Address:       "Moscow, Tverskaya 1",
 		PhoneNumber:   "+79001234567",
 		Citizenship:   "RU",
@@ -170,7 +172,7 @@ func TestUpdateProfile_ValidationErrors(t *testing.T) {
 		},
 		{
 			name:    "invalid birth date",
-			mutate:  func(in *UpdateProfileInput) { in.BirthDate = time.Now().AddDate(1, 0, 0) },
+			mutate:  func(in *UpdateProfileInput) { in.BirthDate = pgtype.Date{Time: time.Now().AddDate(1, 0, 0), Valid: true} },
 			wantErr: domain.ErrInvalidBirthDate,
 		},
 		{

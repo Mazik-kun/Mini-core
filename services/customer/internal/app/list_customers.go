@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 
-	"uuid"
+	"github.com/google/uuid"
 
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
@@ -89,15 +89,15 @@ func encodePageToken(id uuid.UUID) string {
 
 func decodePageToken(token string) (uuid.UUID, error) {
 	if token == "" {
-		return uuid.Nil(), nil
+		return uuid.Nil, nil
 	}
 	raw, err := base64.RawURLEncoding.DecodeString(token)
 	if err != nil {
-		return uuid.Nil(), domain.ErrInvalidPageToken
+		return uuid.Nil, domain.ErrInvalidPageToken
 	}
 	var id uuid.UUID
 	if len(raw) != 16 {
-		return uuid.Nil(), domain.ErrInvalidPageToken
+		return uuid.Nil, domain.ErrInvalidPageToken
 	}
 	copy(id[:], raw)
 	return id, nil
