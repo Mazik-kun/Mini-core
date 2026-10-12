@@ -2,20 +2,35 @@ package app
 
 import (
 	"context"
+	"errors"
 	"strings"
-
-	"github.com/google/uuid"
+	"time"
 
 	"github.com/Mazik-kun/mini-core/services/auth/internal/domain"
 )
 
 type LoginUseCase struct {
-	users  domain.UserRepository
-	hasher domain.PasswordHasher
+	users       domain.UserRepository
+	hasher      domain.PasswordHasher
+	tokens      domain.TokenIssuer
+	refreshRepo domain.RefreshTokenRepository
+	refreshTTL  time.Duration
 }
 
-func NewLoginUseCase(users domain.UserRepository, hasher domain.PasswordHasher) *LoginUseCase {
-	return &LoginUseCase{users: users, hasher: hasher}
+func NewLoginUseCase(
+	users domain.UserRepository,
+	hasher domain.PasswordHasher,
+	tokens domain.TokenIssuer,
+	refreshRepo domain.RefreshTokenRepository,
+	refreshTTL time.Duration,
+) *LoginUseCase {
+	return &LoginUseCase{
+		users:       users,
+		hasher:      hasher,
+		tokens:      tokens,
+		refreshRepo: refreshRepo,
+		refreshTTL:  refreshTTL,
+	}
 }
 
 type LoginInput struct {
@@ -24,8 +39,9 @@ type LoginInput struct {
 }
 
 type LoginOutput struct {
-	UserID uuid.UUID
-	Role   string
+	AccessToken  string
+	RefreshToken string
+	ExpiresIn    int64
 }
 
 func (uc *LoginUseCase) Login(ctx context.Context, in LoginInput) (LoginOutput, error) {
@@ -33,6 +49,9 @@ func (uc *LoginUseCase) Login(ctx context.Context, in LoginInput) (LoginOutput, 
 
 	user, err := uc.users.GetByEmail(ctx, email)
 	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return LoginOutput{}, domain.ErrInvalidCredentials
+		}
 		return LoginOutput{}, err
 	}
 
@@ -44,5 +63,27 @@ func (uc *LoginUseCase) Login(ctx context.Context, in LoginInput) (LoginOutput, 
 		return LoginOutput{}, domain.ErrInvalidCredentials
 	}
 
-	return LoginOutput{UserID: user.ID, Role: user.Role}, nil
+	pair, err := uc.tokens.Issue(domain.Claims{
+		UserID:     user.ID,
+		Role:       user.Role,
+		CustomerID: user.CustomerID,
+	})
+	if err != nil {
+		return LoginOutput{}, err
+	}
+
+	err = uc.refreshRepo.Create(ctx, domain.RefreshToken{
+		UserID:    user.ID,
+		TokenHash: domain.HashRefreshToken(pair.RefreshToken),
+		ExpiresAt: time.Now().UTC().Add(uc.refreshTTL),
+	})
+	if err != nil {
+		return LoginOutput{}, err
+	}
+
+	return LoginOutput{
+		AccessToken:  pair.AccessToken,
+		RefreshToken: pair.RefreshToken,
+		ExpiresIn:    pair.ExpiresIn,
+	}, nil
 }

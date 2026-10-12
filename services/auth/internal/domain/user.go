@@ -15,5 +15,3 @@ type User struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
-
-const RoleClient = "CLIENT"

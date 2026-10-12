@@ -49,9 +49,9 @@ func TestVerifyPassword(t *testing.T) {
 	})
 
 	t.Run("base64 garbage", func(t *testing.T) {
-		_, err := VerifyPassword("hello", "$argon2id$v=19$m=65536,t=3,p=4$AAAA$BBBB")
-		if err == nil {
-			t.Errorf("expected error, got nil")
-		}
+    _, err := VerifyPassword("hello", "$argon2id$v=19$m=65536,t=3,p=4$!!!$@@@")
+    if err == nil {
+        t.Errorf("expected error, got nil")
+    	}
 	})
 }

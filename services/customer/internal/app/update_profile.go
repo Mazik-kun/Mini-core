@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/Mazik-kun/mini-core/pkg/roles"
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
 
@@ -29,7 +30,7 @@ type UpdateProfileInput struct{
 }
 
 func(uc *UpdateProfileUseCase)UpdateProfile(ctx context.Context, in UpdateProfileInput)(domain.Customer, error){
-	if in.RequesterRole == domain.RoleClient && in.CustomerID != in.RequesterID {
+	if in.RequesterRole == roles.RoleClient && in.CustomerID != in.RequesterID {
 		return domain.Customer{}, domain.ErrAccessDenied
 	}
 	err := validateAddress(in.Address)

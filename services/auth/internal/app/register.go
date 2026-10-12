@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/Mazik-kun/mini-core/pkg/roles"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/domain"
 )
 
@@ -47,7 +48,7 @@ func (uc *RegisterUseCase) Register(ctx context.Context, in RegisterInput) (Regi
 	user, err := uc.users.Create(ctx, domain.User{
 		Email:        email,
 		PasswordHash: hash,
-		Role:         domain.RoleClient,
+		Role:         roles.RoleClient,
 	})
 	if err != nil {
 		return RegisterOutput{}, err

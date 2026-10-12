@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"testing"
+
 	"github.com/google/uuid"
 
+	"github.com/Mazik-kun/mini-core/pkg/roles"
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
 
@@ -81,7 +83,7 @@ func TestGetCustomer_ClientRequestsSelf_Success(t *testing.T) {
 	got, err := uc.GetCustomer(context.Background(), GetCustomerInput{
 		CustomerID:    id,
 		RequesterID:   id,
-		RequesterRole: domain.RoleClient,
+		RequesterRole: roles.RoleClient,
 	})
 
 	if err != nil {
@@ -101,7 +103,7 @@ func TestGetCustomer_ClientRequestsOther_AccessDenied(t *testing.T) {
 	_, err := uc.GetCustomer(context.Background(), GetCustomerInput{
 		CustomerID:    otherID,
 		RequesterID:   uuid.New(), // другой id
-		RequesterRole: domain.RoleClient,
+		RequesterRole: roles.RoleClient,
 	})
 
 	if !errors.Is(err, domain.ErrAccessDenied) {
@@ -118,7 +120,7 @@ func TestGetCustomer_OfficerRequestsAny_Success(t *testing.T) {
 	got, err := uc.GetCustomer(context.Background(), GetCustomerInput{
 		CustomerID:    id,
 		RequesterID:   uuid.New(), // офицер — другой id, но роль позволяет
-		RequesterRole: domain.RoleOfficer,
+		RequesterRole: roles.RoleOfficer,
 	})
 
 	if err != nil {
@@ -137,7 +139,7 @@ func TestGetCustomer_NotFound(t *testing.T) {
 	_, err := uc.GetCustomer(context.Background(), GetCustomerInput{
 		CustomerID:    id,
 		RequesterID:   id,
-		RequesterRole: domain.RoleClient,
+		RequesterRole: roles.RoleClient,
 	})
 
 	if !errors.Is(err, domain.ErrCustomerNotFound) {
@@ -152,7 +154,7 @@ func TestGetCustomer_InvalidID(t *testing.T) {
 	_, err := uc.GetCustomer(context.Background(), GetCustomerInput{
 		CustomerID:    uuid.Nil,
 		RequesterID:   uuid.New(),
-		RequesterRole: domain.RoleClient,
+		RequesterRole: roles.RoleClient,
 	})
 
 	if !errors.Is(err, domain.ErrInvalidCustomerID) {

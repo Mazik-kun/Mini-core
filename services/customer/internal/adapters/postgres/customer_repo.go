@@ -109,19 +109,6 @@ func (r *CustomerRepository) UpdateStatus(ctx context.Context, id uuid.UUID, sta
 	return nil
 }
 
-// ---------- List ----------
-//
-// В SQL используется:
-//   - @statuses::text[] IS NULL  → «без фильтра»
-//   - sqlc.narg('cursor')::uuid  → optional-параметр
-//   - LIMIT @lim
-//
-// По этой причине:
-//   - пустой срез Statuses конвертируем в nil, чтобы сработало "IS NULL";
-//   - курсор кладём в pgtype.UUID с Valid=true только если он не uuid.Nil.
-//
-// TODO: сверить имена полей в db.ListCustomersParams (Statuses/Cursor/Lim)
-//       и точный тип Cursor (pgtype.UUID vs *uuid.UUID) с генерированным db/*.go.
 func (r *CustomerRepository) List(ctx context.Context, filter domain.ListFilter) ([]domain.Customer, error) {
 	params := db.ListCustomersParams{
 		Lim: int32(filter.Limit),

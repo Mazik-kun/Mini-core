@@ -2,8 +2,10 @@ package app
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 
+	"github.com/Mazik-kun/mini-core/pkg/roles"
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
 
@@ -25,7 +27,7 @@ func (uc *GetCustomerStatusUseCase) GetCustomerStatus(ctx context.Context, in Ge
 	if in.CustomerID == uuid.Nil {
 		return "", domain.ErrInvalidCustomerID
 	}
-	if in.RequesterRole == domain.RoleClient && in.CustomerID != in.RequesterID {
+	if in.RequesterRole == roles.RoleClient && in.CustomerID != in.RequesterID {
 		return "", domain.ErrAccessDenied
 	}
 	customer, err := uc.repo.GetByID(ctx, in.CustomerID)

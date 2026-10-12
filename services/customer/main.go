@@ -20,6 +20,7 @@ import (
 	"github.com/Mazik-kun/mini-core/services/customer/internal/adapters/postgres/db"
 	"github.com/Mazik-kun/mini-core/services/customer/internal/app"
 	"github.com/Mazik-kun/mini-core/services/customer/internal/config"
+	"github.com/Mazik-kun/mini-core/pkg/grpc/interceptors"
 )
 
 func main() {
@@ -69,7 +70,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	grpcSrv := grpc.NewServer()
+	grpcSrv := grpc.NewServer(
+    grpc.ChainUnaryInterceptor(
+        interceptors.RequestID(),
+        interceptors.Logging(log),
+        interceptors.Recovery(log),
+        grpcserver.RequesterInterceptor(),
+		),
+	)
 	customerv1.RegisterCustomerServiceServer(grpcSrv, srv)
 
 	healthSrv := health.NewServer()

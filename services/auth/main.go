@@ -5,11 +5,13 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"time"
 
 	authv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/auth/v1"
 	"github.com/Mazik-kun/mini-core/pkg/grpc/interceptors"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/grpcserver"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/hasher"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/jwt"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/postgres"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/postgres/db"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/app"
@@ -19,6 +21,11 @@ import (
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
+)
+
+const (
+	accessTTL  = 15 * time.Minute
+	refreshTTL = 30 * 24 * time.Hour
 )
 
 func main() {
@@ -38,10 +45,37 @@ func main() {
 
 	queries := db.New(pool)
 	userRepo := postgres.NewUserRepository(queries)
+	refreshRepo := postgres.NewRefreshTokenRepository(queries)
+
 	argon := hasher.NewArgon2()
 
+	privateKeyPEM, err := os.ReadFile(cfg.JWTPrivateKeyPath)
+	if err != nil {
+		logger.Error("read jwt private key", "err", err)
+		os.Exit(1)
+	}
+	publicKeyPEM, err := os.ReadFile(cfg.JWTPublicKeyPath)
+	if err != nil {
+		logger.Error("read jwt public key", "err", err)
+		os.Exit(1)
+	}
+
+	issuer, err := jwt.NewIssuer(privateKeyPEM, accessTTL)
+	if err != nil {
+		logger.Error("jwt issuer", "err", err)
+		os.Exit(1)
+	}
+	verifier, err := jwt.NewVerifier(publicKeyPEM)
+	if err != nil {
+		logger.Error("jwt verifier", "err", err)
+		os.Exit(1)
+	}
+
 	registerUC := app.NewRegisterUseCase(userRepo, argon)
-	loginUC := app.NewLoginUseCase(userRepo, argon)
+	loginUC := app.NewLoginUseCase(userRepo, argon, issuer, refreshRepo, refreshTTL)
+	refreshUC := app.NewRefreshUseCase(refreshRepo, userRepo, issuer, refreshTTL)
+	logoutUC := app.NewLogoutUseCase(refreshRepo)
+	validateTokenUC := app.NewValidateTokenUseCase(verifier)
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
@@ -57,11 +91,18 @@ func main() {
 		),
 	)
 
-	srv := grpcserver.NewAuthServer(registerUC, loginUC, logger)
+	srv := grpcserver.NewAuthServer(
+		registerUC,
+		loginUC,
+		refreshUC,
+		logoutUC,
+		validateTokenUC,
+		logger,
+	)
 	authv1.RegisterAuthServiceServer(grpcServer, srv)
 
 	reflection.Register(grpcServer)
-	
+
 	healthServer := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
 	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)

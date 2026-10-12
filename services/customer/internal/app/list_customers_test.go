@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/Mazik-kun/mini-core/pkg/roles"
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
 
@@ -32,7 +33,7 @@ func newListRepo(n int) *listRepo {
 
 func TestListCustomers_ClientDenied(t *testing.T) {
 	uc := NewListCustomersUseCase(newListRepo(0))
-	_, err := uc.ListCustomers(context.Background(), ListCustomersInput{RequesterRole: domain.RoleClient})
+	_, err := uc.ListCustomers(context.Background(), ListCustomersInput{RequesterRole: roles.RoleClient})
 	if !errors.Is(err, domain.ErrAccessDenied) {
 		t.Errorf("want ErrAccessDenied, got %v", err)
 	}
@@ -41,7 +42,7 @@ func TestListCustomers_ClientDenied(t *testing.T) {
 func TestListCustomers_InvalidStatus(t *testing.T) {
 	uc := NewListCustomersUseCase(newListRepo(0))
 	_, err := uc.ListCustomers(context.Background(), ListCustomersInput{
-		RequesterRole: domain.RoleOfficer,
+		RequesterRole: roles.RoleOfficer,
 		Statuses:      []domain.Status{"WHATEVER"},
 	})
 	if !errors.Is(err, domain.ErrInvalidStatus) {
@@ -53,7 +54,7 @@ func TestListCustomers_InvalidToken(t *testing.T) {
 	uc := NewListCustomersUseCase(newListRepo(0))
 	for _, token := range []string{"!!!not-base64!!!", "YWJj"} { // мусор и неверная длина
 		_, err := uc.ListCustomers(context.Background(), ListCustomersInput{
-			RequesterRole: domain.RoleOfficer,
+			RequesterRole: roles.RoleOfficer,
 			PageToken:     token,
 		})
 		if !errors.Is(err, domain.ErrInvalidPageToken) {
@@ -67,7 +68,7 @@ func TestListCustomers_HasNextPage(t *testing.T) {
 	uc := NewListCustomersUseCase(repo)
 
 	out, err := uc.ListCustomers(context.Background(), ListCustomersInput{
-		RequesterRole: domain.RoleOfficer,
+		RequesterRole: roles.RoleOfficer,
 		PageSize:      3,
 	})
 	if err != nil {
@@ -88,7 +89,7 @@ func TestListCustomers_HasNextPage(t *testing.T) {
 func TestListCustomers_LastPage_NoToken(t *testing.T) {
 	uc := NewListCustomersUseCase(newListRepo(3))
 	out, err := uc.ListCustomers(context.Background(), ListCustomersInput{
-		RequesterRole: domain.RoleAdmin,
+		RequesterRole: roles.RoleAdmin,
 		PageSize:      3,
 	})
 	if err != nil {
@@ -103,12 +104,12 @@ func TestListCustomers_DefaultAndMaxPageSize(t *testing.T) {
 	repo := newListRepo(0)
 	uc := NewListCustomersUseCase(repo)
 
-	_, _ = uc.ListCustomers(context.Background(), ListCustomersInput{RequesterRole: domain.RoleOfficer})
+	_, _ = uc.ListCustomers(context.Background(), ListCustomersInput{RequesterRole: roles.RoleOfficer})
 	if repo.gotFilter.Limit != defaultPageSize+1 {
 		t.Errorf("default: limit = %d, want %d", repo.gotFilter.Limit, defaultPageSize+1)
 	}
 
-	_, _ = uc.ListCustomers(context.Background(), ListCustomersInput{RequesterRole: domain.RoleOfficer, PageSize: 10_000})
+	_, _ = uc.ListCustomers(context.Background(), ListCustomersInput{RequesterRole: roles.RoleOfficer, PageSize: 10_000})
 	if repo.gotFilter.Limit != maxPageSize+1 {
 		t.Errorf("max: limit = %d, want %d", repo.gotFilter.Limit, maxPageSize+1)
 	}
@@ -118,7 +119,7 @@ func TestListCustomers_EmptyStatusesPassedAsNil(t *testing.T) {
 	repo := newListRepo(0)
 	uc := NewListCustomersUseCase(repo)
 	_, _ = uc.ListCustomers(context.Background(), ListCustomersInput{
-		RequesterRole: domain.RoleOfficer,
+		RequesterRole: roles.RoleOfficer,
 		Statuses:      []domain.Status{},
 	})
 	if repo.gotFilter.Statuses != nil {

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/Mazik-kun/mini-core/pkg/roles"
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
 
@@ -18,7 +19,7 @@ func validUpdateProfileInput(customerID uuid.UUID) UpdateProfileInput {
 	return UpdateProfileInput{
 		CustomerID:    customerID,
 		RequesterID:   customerID,
-		RequesterRole: domain.RoleClient,
+		RequesterRole: roles.RoleClient,
 		FullName:      "Ivan Ivanov",
 		BirthDate:     pgtype.Date{Time: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC), Valid: true},
 		Address:       "Moscow, Tverskaya 1",
@@ -80,7 +81,7 @@ func TestUpdateProfile_ClientUpdatesOther_AccessDenied(t *testing.T) {
 	uc := NewUpdateProfileUseCase(repo)
 	in := validUpdateProfileInput(otherID)
 	in.RequesterID = uuid.New() // другой id
-	in.RequesterRole = domain.RoleClient
+	in.RequesterRole = roles.RoleClient
 
 	_, err := uc.UpdateProfile(context.Background(), in)
 	if !errors.Is(err, domain.ErrAccessDenied) {
@@ -100,7 +101,7 @@ func TestUpdateProfile_OfficerUpdatesAny_Success(t *testing.T) {
 	uc := NewUpdateProfileUseCase(repo)
 	in := validUpdateProfileInput(id)
 	in.RequesterID = uuid.New() // офицер — другой id, но роль позволяет
-	in.RequesterRole = domain.RoleOfficer
+	in.RequesterRole = roles.RoleOfficer
 
 	got, err := uc.UpdateProfile(context.Background(), in)
 	if err != nil {

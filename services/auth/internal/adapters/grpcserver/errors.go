@@ -20,6 +20,10 @@ func mapError(err error) error {
 		return status.Error(codes.NotFound, err.Error())
 	case errors.Is(err, domain.ErrInvalidCredentials):
 		return status.Error(codes.Unauthenticated, err.Error())
+	case errors.Is(err, domain.ErrInvalidToken),
+		errors.Is(err, domain.ErrTokenExpired),
+		errors.Is(err, domain.ErrRefreshTokenNotFound):
+    	return status.Error(codes.Unauthenticated, err.Error())
 	default:
 		return status.Error(codes.Internal, "internal error")
 	}

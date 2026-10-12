@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/Mazik-kun/mini-core/pkg/roles"
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
 
@@ -35,7 +36,7 @@ type ListCustomersOutput struct {
 }
 
 func (uc *ListCustomersUseCase) ListCustomers(ctx context.Context, in ListCustomersInput) (ListCustomersOutput, error) {
-	if in.RequesterRole != domain.RoleOfficer && in.RequesterRole != domain.RoleAdmin {
+	if in.RequesterRole != roles.RoleOfficer && in.RequesterRole !=roles.RoleAdmin {
 		return ListCustomersOutput{}, domain.ErrAccessDenied
 	}
 

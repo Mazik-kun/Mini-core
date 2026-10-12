@@ -1,4 +1,4 @@
-package domain
+package roles
 
 const (
 	RoleClient = "CLIENT"
