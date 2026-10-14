@@ -10,6 +10,7 @@ type UserRepository interface {
 	Create(ctx context.Context, u User) (User, error)
 	GetByEmail(ctx context.Context, email string) (User, error)
 	GetByID(ctx context.Context, id uuid.UUID) (User, error)
+	ExistsByRole(ctx context.Context, role string) (bool, error)
 }
 
 type PasswordHasher interface {

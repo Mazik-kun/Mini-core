@@ -43,6 +43,17 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const existsUserByRole = `-- name: ExistsUserByRole :one
+SELECT EXISTS(SELECT 1 FROM users WHERE role = $1)
+`
+
+func (q *Queries) ExistsUserByRole(ctx context.Context, role string) (bool, error) {
+	row := q.db.QueryRow(ctx, existsUserByRole, role)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, email, password_hash, role, customer_id, created_at, updated_at
 FROM users

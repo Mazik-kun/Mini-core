@@ -16,6 +16,7 @@ type AuthServer struct {
 	refresh       *app.RefreshUseCase
 	logout        *app.LogoutUseCase
 	validateToken *app.ValidateTokenUseCase
+	createOfficer *app.CreateOfficerUseCase
 	log           *slog.Logger
 }
 
@@ -25,6 +26,7 @@ func NewAuthServer(
 	refresh *app.RefreshUseCase,
 	logout *app.LogoutUseCase,
 	validateToken *app.ValidateTokenUseCase,
+	createOfficer *app.CreateOfficerUseCase,
 	log *slog.Logger,
 ) *AuthServer {
 	return &AuthServer{
@@ -33,6 +35,7 @@ func NewAuthServer(
 		refresh:       refresh,
 		logout:        logout,
 		validateToken: validateToken,
+		createOfficer: createOfficer,
 		log:           log,
 	}
 }
@@ -112,4 +115,22 @@ func (s *AuthServer) ValidateToken(ctx context.Context, req *authv1.ValidateToke
 		resp.CustomerId = out.Claims.CustomerID.String()
 	}
 	return resp, nil
+}
+
+func (s *AuthServer) CreateOfficer(ctx context.Context, req *authv1.CreateOfficerRequest) (*authv1.RegisterResponse, error) {
+	s.log.Info("create officer called", "email", req.GetEmail())
+
+	out, err := s.createOfficer.CreateOfficer(ctx, app.CreateOfficerInput{
+		Email:    req.GetEmail(),
+		Password: req.GetPassword(),
+	})
+	if err != nil {
+		return nil, mapError(err)
+	}
+
+	return &authv1.RegisterResponse{
+		UserId: out.UserID.String(),
+		Email:  out.Email,
+		Role:   authv1.Role_ROLE_OFFICER,
+	}, nil
 }

@@ -41,10 +41,19 @@ func (r *fakeRepo) GetByID(_ context.Context, id uuid.UUID) (domain.User, error)
 	return domain.User{}, domain.ErrUserNotFound
 }
 
+func (r *fakeRepo) ExistsByRole(_ context.Context, role string) (bool, error) {
+	for _, u := range r.users {
+		if u.Role == role {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 type fakeHasher struct{}
 
-func (fakeHasher) Hash(plain string) (string, error)               { return "hashed:" + plain, nil }
-func (fakeHasher) Verify(plain, hash string) (bool, error)         { return hash == "hashed:"+plain, nil }
+func (fakeHasher) Hash(plain string) (string, error)       { return "hashed:" + plain, nil }
+func (fakeHasher) Verify(plain, hash string) (bool, error) { return hash == "hashed:"+plain, nil }
 
 func newUseCase() (*app.RegisterUseCase, *fakeRepo) {
 	repo := &fakeRepo{users: map[string]domain.User{}}

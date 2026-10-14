@@ -69,6 +69,14 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (domain.User
 	return toDomain(row), nil
 }
 
+func (r *UserRepository) ExistsByRole(ctx context.Context, role string) (bool, error) {
+	exists, err := r.q.ExistsUserByRole(ctx, role)
+	if err != nil {
+		return false, fmt.Errorf("exists user by role: %w", err)
+	}
+	return exists, nil
+}
+
 func toDomain(u db.User) domain.User {
 	var customerID *uuid.UUID
 	if u.CustomerID.Valid {

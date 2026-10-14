@@ -38,6 +38,7 @@ func main() {
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -54,6 +55,19 @@ func main() {
 	refreshRepo := postgres.NewRefreshTokenRepository(queries)
 
 	argon := hasher.NewArgon2()
+
+	if cfg.BootstrapAdminEmail != "" && cfg.BootstrapAdminPassword != "" {
+		if err := app.BootstrapAdmin(
+			ctx,
+			userRepo,
+			argon,
+			cfg.BootstrapAdminEmail,
+			cfg.BootstrapAdminPassword,
+		); err != nil {
+			logger.Error("bootstrap admin", "err", err)
+			os.Exit(1)
+		}
+	}
 
 	privateKeyPEM, err := os.ReadFile(cfg.JWTPrivateKeyPath)
 	if err != nil {
@@ -87,6 +101,7 @@ func main() {
 	refreshUC := app.NewRefreshUseCase(refreshRepo, userRepo, issuer, refreshTTL)
 	logoutUC := app.NewLogoutUseCase(refreshRepo)
 	validateTokenUC := app.NewValidateTokenUseCase(verifier)
+	createOfficerUC := app.NewCreateOfficerUseCase(userRepo, argon)
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
@@ -108,6 +123,7 @@ func main() {
 		refreshUC,
 		logoutUC,
 		validateTokenUC,
+		createOfficerUC,
 		logger,
 	)
 	authv1.RegisterAuthServiceServer(grpcServer, srv)

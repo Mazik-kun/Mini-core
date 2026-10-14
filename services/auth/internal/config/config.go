@@ -14,6 +14,9 @@ type Config struct {
 	JWTPrivateKeyPath string
 	JWTPublicKeyPath  string
 	JWTKeyID          string
+
+	BootstrapAdminEmail    string
+	BootstrapAdminPassword string
 }
 
 func Load() (*Config, error) {
@@ -26,6 +29,9 @@ func Load() (*Config, error) {
 		JWTPrivateKeyPath: os.Getenv("JWT_PRIVATE_KEY_PATH"),
 		JWTPublicKeyPath:  os.Getenv("JWT_PUBLIC_KEY_PATH"),
 		JWTKeyID:          os.Getenv("JWT_KEY_ID"),
+
+		BootstrapAdminEmail:    os.Getenv("BOOTSTRAP_ADMIN_EMAIL"),
+		BootstrapAdminPassword: os.Getenv("BOOTSTRAP_ADMIN_PASSWORD"),
 	}
 
 	if cfg.GRPCAddr == "" {

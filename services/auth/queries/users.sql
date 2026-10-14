@@ -11,3 +11,6 @@ WHERE email = $1;
 SELECT id, email, password_hash, role, customer_id, created_at, updated_at
 FROM users
 WHERE id = $1;
+
+-- name: ExistsUserByRole :one
+SELECT EXISTS(SELECT 1 FROM users WHERE role = $1);
