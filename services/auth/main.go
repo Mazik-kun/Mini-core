@@ -5,12 +5,15 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	authv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/auth/v1"
 	"github.com/Mazik-kun/mini-core/pkg/grpc/interceptors"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/grpcserver"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/hasher"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/httpserver"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/jwt"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/postgres"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/postgres/db"
@@ -36,7 +39,10 @@ func main() {
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	pool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 	if err != nil {
 		logger.Error("db pool", "err", err)
 		os.Exit(1)
@@ -68,6 +74,11 @@ func main() {
 	verifier, err := jwt.NewVerifier(publicKeyPEM)
 	if err != nil {
 		logger.Error("jwt verifier", "err", err)
+		os.Exit(1)
+	}
+	publicKey, err := jwt.LoadPublicKey(publicKeyPEM)
+	if err != nil {
+		logger.Error("load jwt public key", "err", err)
 		os.Exit(1)
 	}
 
@@ -107,9 +118,29 @@ func main() {
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
 	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
 
-	logger.Info("auth service started", "addr", cfg.GRPCAddr)
-	if err := grpcServer.Serve(lis); err != nil {
-		logger.Error("serve", "err", err)
+	httpSrv, err := httpserver.NewServer(cfg.HTTPAddr, publicKey, cfg.JWTKeyID, logger)
+	if err != nil {
+		logger.Error("http server", "err", err)
 		os.Exit(1)
 	}
+
+	go runHTTPServer(ctx, httpSrv, logger)
+	go stopGRPCOnContextDone(ctx, grpcServer)
+
+	logger.Info("auth service started", "grpc_addr", cfg.GRPCAddr, "http_addr", cfg.HTTPAddr)
+	if err := grpcServer.Serve(lis); err != nil {
+		logger.Error("serve grpc", "err", err)
+		os.Exit(1)
+	}
+}
+
+func runHTTPServer(ctx context.Context, srv *httpserver.Server, logger *slog.Logger) {
+	if err := srv.Run(ctx); err != nil {
+		logger.Error("http server", "err", err)
+	}
+}
+
+func stopGRPCOnContextDone(ctx context.Context, grpcServer *grpc.Server) {
+	<-ctx.Done()
+	grpcServer.GracefulStop()
 }
