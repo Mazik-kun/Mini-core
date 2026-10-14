@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"os"
+	"strings"
 
 	envloader "github.com/Mazik-kun/mini-core/pkg/config"
 )
@@ -14,6 +15,7 @@ type Config struct {
 	JWTPrivateKeyPath string
 	JWTPublicKeyPath  string
 	JWTKeyID          string
+	KafkaBrokers      []string
 
 	BootstrapAdminEmail    string
 	BootstrapAdminPassword string
@@ -29,6 +31,7 @@ func Load() (*Config, error) {
 		JWTPrivateKeyPath: os.Getenv("JWT_PRIVATE_KEY_PATH"),
 		JWTPublicKeyPath:  os.Getenv("JWT_PUBLIC_KEY_PATH"),
 		JWTKeyID:          os.Getenv("JWT_KEY_ID"),
+		KafkaBrokers:      parseKafkaBrokers(os.Getenv("KAFKA_BROKERS")),
 
 		BootstrapAdminEmail:    os.Getenv("BOOTSTRAP_ADMIN_EMAIL"),
 		BootstrapAdminPassword: os.Getenv("BOOTSTRAP_ADMIN_PASSWORD"),
@@ -52,6 +55,26 @@ func Load() (*Config, error) {
 	if cfg.JWTPublicKeyPath == "" {
 		return nil, errors.New("JWT_PUBLIC_KEY_PATH is not set")
 	}
+	if len(cfg.KafkaBrokers) == 0 {
+		return nil, errors.New("KAFKA_BROKERS is not set")
+	}
 
 	return cfg, nil
+}
+
+// parseKafkaBrokers разбирает "a:9092,b:9092" в срез адресов.
+func parseKafkaBrokers(rawBrokers string) []string {
+	if rawBrokers == "" {
+		return nil
+	}
+
+	parts := strings.Split(rawBrokers, ",")
+	brokers := make([]string, 0, len(parts))
+	for _, part := range parts {
+		broker := strings.TrimSpace(part)
+		if broker != "" {
+			brokers = append(brokers, broker)
+		}
+	}
+	return brokers
 }

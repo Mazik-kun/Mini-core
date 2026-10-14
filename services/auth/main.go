@@ -10,7 +10,9 @@ import (
 	"time"
 
 	authv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/auth/v1"
+	"github.com/Mazik-kun/mini-core/pkg/authjwt"
 	"github.com/Mazik-kun/mini-core/pkg/grpc/interceptors"
+	"github.com/Mazik-kun/mini-core/pkg/kafka"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/grpcserver"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/hasher"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/httpserver"
@@ -30,6 +32,20 @@ const (
 	accessTTL  = 15 * time.Minute
 	refreshTTL = 30 * 24 * time.Hour
 )
+
+// publicMethods — gRPC-методы, доступные без access-токена.
+var publicMethods = map[string]bool{
+	"/bank.auth.v1.AuthService/Register":      true,
+	"/bank.auth.v1.AuthService/Login":         true,
+	"/bank.auth.v1.AuthService/Refresh":       true,
+	"/bank.auth.v1.AuthService/ValidateToken": true,
+
+	// Служебные: иначе healthcheck и reflection потребуют токен.
+	"/grpc.health.v1.Health/Check":                                   true,
+	"/grpc.health.v1.Health/Watch":                                   true,
+	"/grpc.reflection.v1.ServerReflection/ServerReflectionInfo":      true,
+	"/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo": true,
+}
 
 func main() {
 	cfg, err := config.Load()
@@ -55,6 +71,9 @@ func main() {
 	refreshRepo := postgres.NewRefreshTokenRepository(queries)
 
 	argon := hasher.NewArgon2()
+
+	producer := kafka.NewProducer(cfg.KafkaBrokers)
+	defer producer.Close()
 
 	if cfg.BootstrapAdminEmail != "" && cfg.BootstrapAdminPassword != "" {
 		if err := app.BootstrapAdmin(
@@ -95,8 +114,9 @@ func main() {
 		logger.Error("load jwt public key", "err", err)
 		os.Exit(1)
 	}
+	authVerifier := authjwt.NewVerifier(publicKey)
 
-	registerUC := app.NewRegisterUseCase(userRepo, argon)
+	registerUC := app.NewRegisterUseCase(userRepo, argon, producer)
 	loginUC := app.NewLoginUseCase(userRepo, argon, issuer, refreshRepo, refreshTTL)
 	refreshUC := app.NewRefreshUseCase(refreshRepo, userRepo, issuer, refreshTTL)
 	logoutUC := app.NewLogoutUseCase(refreshRepo)
@@ -114,6 +134,7 @@ func main() {
 			interceptors.RequestID(),
 			interceptors.Logging(logger),
 			interceptors.Recovery(logger),
+			interceptors.UnaryAuthInterceptor(authVerifier, publicMethods),
 		),
 	)
 
@@ -143,7 +164,11 @@ func main() {
 	go runHTTPServer(ctx, httpSrv, logger)
 	go stopGRPCOnContextDone(ctx, grpcServer)
 
-	logger.Info("auth service started", "grpc_addr", cfg.GRPCAddr, "http_addr", cfg.HTTPAddr)
+	logger.Info("auth service started",
+		"grpc_addr", cfg.GRPCAddr,
+		"http_addr", cfg.HTTPAddr,
+		"kafka_brokers", cfg.KafkaBrokers,
+	)
 	if err := grpcServer.Serve(lis); err != nil {
 		logger.Error("serve grpc", "err", err)
 		os.Exit(1)
