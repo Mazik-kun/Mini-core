@@ -47,13 +47,7 @@ func (s *CustomerServer) GetCustomer(ctx context.Context, req *customerv1.GetCus
 		return nil, status.Error(codes.InvalidArgument, "invalid customer_id")
 	}
 
-	requesterID, requesterRole := RequesterFromContext(ctx)
-
-	customer, err := s.getCustomer.GetCustomer(ctx, app.GetCustomerInput{
-		CustomerID:    customerID,
-		RequesterID:   requesterID,
-		RequesterRole: requesterRole,
-	})
+	customer, err := s.getCustomer.GetCustomer(ctx, app.GetCustomerInput{CustomerID: customerID})
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -66,13 +60,7 @@ func (s *CustomerServer) GetCustomerStatus(ctx context.Context, req *customerv1.
 		return nil, status.Error(codes.InvalidArgument, "invalid customer_id")
 	}
 
-	requesterID, requesterRole := RequesterFromContext(ctx)
-
-	current, err := s.getCustomerStatus.GetCustomerStatus(ctx, app.GetCustomerStatusInput{
-		CustomerID:    customerID,
-		RequesterID:   requesterID,
-		RequesterRole: requesterRole,
-	})
+	current, err := s.getCustomerStatus.GetCustomerStatus(ctx, app.GetCustomerStatusInput{CustomerID: customerID})
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -85,22 +73,18 @@ func (s *CustomerServer) UpdateProfile(ctx context.Context, req *customerv1.Upda
 		return nil, status.Error(codes.InvalidArgument, "invalid customer_id")
 	}
 
-	requesterID, requesterRole := RequesterFromContext(ctx)
-
 	var birthDate pgtype.Date
 	if ts := req.GetDateOfBirth(); ts != nil {
 		birthDate = pgtype.Date{Time: ts.AsTime(), Valid: true}
 	}
 
 	updated, err := s.updateProfile.UpdateProfile(ctx, app.UpdateProfileInput{
-		CustomerID:    customerID,
-		RequesterID:   requesterID,
-		RequesterRole: requesterRole,
-		FullName:      req.GetFullName(),
-		BirthDate:     birthDate,
-		Address:       req.GetAddress(),
-		PhoneNumber:   req.GetPhone(),
-		Citizenship:   req.GetCitizenship(),
+		CustomerID:  customerID,
+		FullName:    req.GetFullName(),
+		BirthDate:   birthDate,
+		Address:     req.GetAddress(),
+		PhoneNumber: req.GetPhone(),
+		Citizenship: req.GetCitizenship(),
 	})
 	if err != nil {
 		return nil, mapError(err)
@@ -109,9 +93,6 @@ func (s *CustomerServer) UpdateProfile(ctx context.Context, req *customerv1.Upda
 }
 
 func (s *CustomerServer) ListCustomers(ctx context.Context, req *customerv1.ListCustomersRequest) (*customerv1.ListCustomersResponse, error) {
-	requesterID, requesterRole := RequesterFromContext(ctx)
-	_ = requesterID // use case сам проверит роль
-
 	statuses, ok := statusFilterFromProto(req.GetStatusFilter())
 	if !ok {
 		return nil, status.Error(codes.InvalidArgument, "invalid status_filter")
@@ -125,10 +106,9 @@ func (s *CustomerServer) ListCustomers(ctx context.Context, req *customerv1.List
 	}
 
 	out, err := s.listCustomers.ListCustomers(ctx, app.ListCustomersInput{
-		RequesterRole: requesterRole,
-		Statuses:      statuses,
-		PageSize:      pageSize,
-		PageToken:     pageToken,
+		Statuses:  statuses,
+		PageSize:  pageSize,
+		PageToken: pageToken,
 	})
 	if err != nil {
 		return nil, mapError(err)

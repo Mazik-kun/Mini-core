@@ -11,7 +11,6 @@ import (
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
 
-// listRepo — fakeRepo с рабочим List: отдаёт первые Limit записей и запоминает фильтр.
 type listRepo struct {
 	*fakeRepo
 	items     []domain.Customer
@@ -31,9 +30,22 @@ func newListRepo(n int) *listRepo {
 	return &listRepo{fakeRepo: newFakeRepo(), items: items}
 }
 
+// officerContext / adminContext — частые роли.
+func officerContext() context.Context {
+	return contextWithClaims(uuid.New(), nil, roles.RoleOfficer)
+}
+
+func adminContext() context.Context {
+	return contextWithClaims(uuid.New(), nil, roles.RoleAdmin)
+}
+
+func clientContext() context.Context {
+	return contextWithClaims(uuid.New(), nil, roles.RoleClient)
+}
+
 func TestListCustomers_ClientDenied(t *testing.T) {
 	uc := NewListCustomersUseCase(newListRepo(0))
-	_, err := uc.ListCustomers(context.Background(), ListCustomersInput{RequesterRole: roles.RoleClient})
+	_, err := uc.ListCustomers(clientContext(), ListCustomersInput{})
 	if !errors.Is(err, domain.ErrAccessDenied) {
 		t.Errorf("want ErrAccessDenied, got %v", err)
 	}
@@ -41,9 +53,8 @@ func TestListCustomers_ClientDenied(t *testing.T) {
 
 func TestListCustomers_InvalidStatus(t *testing.T) {
 	uc := NewListCustomersUseCase(newListRepo(0))
-	_, err := uc.ListCustomers(context.Background(), ListCustomersInput{
-		RequesterRole: roles.RoleOfficer,
-		Statuses:      []domain.Status{"WHATEVER"},
+	_, err := uc.ListCustomers(officerContext(), ListCustomersInput{
+		Statuses: []domain.Status{"WHATEVER"},
 	})
 	if !errors.Is(err, domain.ErrInvalidStatus) {
 		t.Errorf("want ErrInvalidStatus, got %v", err)
@@ -52,11 +63,8 @@ func TestListCustomers_InvalidStatus(t *testing.T) {
 
 func TestListCustomers_InvalidToken(t *testing.T) {
 	uc := NewListCustomersUseCase(newListRepo(0))
-	for _, token := range []string{"!!!not-base64!!!", "YWJj"} { // мусор и неверная длина
-		_, err := uc.ListCustomers(context.Background(), ListCustomersInput{
-			RequesterRole: roles.RoleOfficer,
-			PageToken:     token,
-		})
+	for _, token := range []string{"!!!not-base64!!!", "YWJj"} {
+		_, err := uc.ListCustomers(officerContext(), ListCustomersInput{PageToken: token})
 		if !errors.Is(err, domain.ErrInvalidPageToken) {
 			t.Errorf("token %q: want ErrInvalidPageToken, got %v", token, err)
 		}
@@ -67,10 +75,7 @@ func TestListCustomers_HasNextPage(t *testing.T) {
 	repo := newListRepo(5)
 	uc := NewListCustomersUseCase(repo)
 
-	out, err := uc.ListCustomers(context.Background(), ListCustomersInput{
-		RequesterRole: roles.RoleOfficer,
-		PageSize:      3,
-	})
+	out, err := uc.ListCustomers(officerContext(), ListCustomersInput{PageSize: 3})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -88,10 +93,7 @@ func TestListCustomers_HasNextPage(t *testing.T) {
 
 func TestListCustomers_LastPage_NoToken(t *testing.T) {
 	uc := NewListCustomersUseCase(newListRepo(3))
-	out, err := uc.ListCustomers(context.Background(), ListCustomersInput{
-		RequesterRole: roles.RoleAdmin,
-		PageSize:      3,
-	})
+	out, err := uc.ListCustomers(adminContext(), ListCustomersInput{PageSize: 3})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -104,12 +106,12 @@ func TestListCustomers_DefaultAndMaxPageSize(t *testing.T) {
 	repo := newListRepo(0)
 	uc := NewListCustomersUseCase(repo)
 
-	_, _ = uc.ListCustomers(context.Background(), ListCustomersInput{RequesterRole: roles.RoleOfficer})
+	_, _ = uc.ListCustomers(officerContext(), ListCustomersInput{})
 	if repo.gotFilter.Limit != defaultPageSize+1 {
 		t.Errorf("default: limit = %d, want %d", repo.gotFilter.Limit, defaultPageSize+1)
 	}
 
-	_, _ = uc.ListCustomers(context.Background(), ListCustomersInput{RequesterRole: roles.RoleOfficer, PageSize: 10_000})
+	_, _ = uc.ListCustomers(officerContext(), ListCustomersInput{PageSize: 10_000})
 	if repo.gotFilter.Limit != maxPageSize+1 {
 		t.Errorf("max: limit = %d, want %d", repo.gotFilter.Limit, maxPageSize+1)
 	}
@@ -118,10 +120,7 @@ func TestListCustomers_DefaultAndMaxPageSize(t *testing.T) {
 func TestListCustomers_EmptyStatusesPassedAsNil(t *testing.T) {
 	repo := newListRepo(0)
 	uc := NewListCustomersUseCase(repo)
-	_, _ = uc.ListCustomers(context.Background(), ListCustomersInput{
-		RequesterRole: roles.RoleOfficer,
-		Statuses:      []domain.Status{},
-	})
+	_, _ = uc.ListCustomers(officerContext(), ListCustomersInput{Statuses: []domain.Status{}})
 	if repo.gotFilter.Statuses != nil {
 		t.Errorf("want nil statuses, got %v", repo.gotFilter.Statuses)
 	}

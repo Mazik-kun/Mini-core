@@ -1,38 +1,30 @@
 package app
 
 import (
-	"context"
 	"errors"
 	"testing"
+
 	"github.com/google/uuid"
 
-	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 	"github.com/Mazik-kun/mini-core/pkg/roles"
+	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
 
 func TestGetCustomerStatus_ClientRequestsSelf_Success(t *testing.T) {
 	repo := newFakeRepo()
 	id := uuid.New()
 	userID := uuid.New()
-	wantStatus := domain.Status("active")
-
-	repo.customers[id] = domain.Customer{
-		ID:     id,
-		UserID: userID,
-		Status: wantStatus,
-	}
+	wantStatus := domain.StatusActive
+	repo.customers[id] = domain.Customer{ID: id, UserID: userID, Status: domain.Status(wantStatus)}
 
 	uc := NewGetCustomerStatusUseCase(repo)
-	got, err := uc.GetCustomerStatus(context.Background(), GetCustomerStatusInput{
-		CustomerID:    id,
-		RequesterID:   id,
-		RequesterRole: roles.RoleClient,
-	})
+	ctx := contextWithClaims(userID, &id, roles.RoleClient)
 
+	got, err := uc.GetCustomerStatus(ctx, GetCustomerStatusInput{CustomerID: id})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got != wantStatus {
+	if got != domain.Status(wantStatus) {
 		t.Errorf("got status %q, want %q", got, wantStatus)
 	}
 }
@@ -40,19 +32,13 @@ func TestGetCustomerStatus_ClientRequestsSelf_Success(t *testing.T) {
 func TestGetCustomerStatus_ClientRequestsOther_AccessDenied(t *testing.T) {
 	repo := newFakeRepo()
 	otherID := uuid.New()
-
-	repo.customers[otherID] = domain.Customer{
-		ID:     otherID,
-		Status: domain.Status("active"),
-	}
+	ownCustomerID := uuid.New()
+	repo.customers[otherID] = domain.Customer{ID: otherID, Status: domain.StatusActive}
 
 	uc := NewGetCustomerStatusUseCase(repo)
-	_, err := uc.GetCustomerStatus(context.Background(), GetCustomerStatusInput{
-		CustomerID:    otherID,
-		RequesterID:   uuid.New(), // другой id
-		RequesterRole: roles.RoleClient,
-	})
+	ctx := contextWithClaims(uuid.New(), &ownCustomerID, roles.RoleClient)
 
+	_, err := uc.GetCustomerStatus(ctx, GetCustomerStatusInput{CustomerID: otherID})
 	if !errors.Is(err, domain.ErrAccessDenied) {
 		t.Errorf("want ErrAccessDenied, got %v", err)
 	}
@@ -61,24 +47,17 @@ func TestGetCustomerStatus_ClientRequestsOther_AccessDenied(t *testing.T) {
 func TestGetCustomerStatus_OfficerRequestsAny_Success(t *testing.T) {
 	repo := newFakeRepo()
 	id := uuid.New()
-	wantStatus := domain.Status("blocked")
-
-	repo.customers[id] = domain.Customer{
-		ID:     id,
-		Status: wantStatus,
-	}
+	wantStatus := domain.StatusBlocked
+	repo.customers[id] = domain.Customer{ID: id, Status: domain.Status(wantStatus)}
 
 	uc := NewGetCustomerStatusUseCase(repo)
-	got, err := uc.GetCustomerStatus(context.Background(), GetCustomerStatusInput{
-		CustomerID:    id,
-		RequesterID:   uuid.New(), // офицер — другой id, но роль позволяет
-		RequesterRole: roles.RoleOfficer,
-	})
+	ctx := contextWithClaims(uuid.New(), nil, roles.RoleOfficer)
 
+	got, err := uc.GetCustomerStatus(ctx, GetCustomerStatusInput{CustomerID: id})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got != wantStatus {
+	if got != domain.Status(wantStatus) {
 		t.Errorf("got status %q, want %q", got, wantStatus)
 	}
 }
@@ -88,12 +67,9 @@ func TestGetCustomerStatus_NotFound(t *testing.T) {
 	id := uuid.New()
 
 	uc := NewGetCustomerStatusUseCase(repo)
-	_, err := uc.GetCustomerStatus(context.Background(), GetCustomerStatusInput{
-		CustomerID:    id,
-		RequesterID:   id,
-		RequesterRole: roles.RoleClient,
-	})
+	ctx := contextWithClaims(id, &id, roles.RoleClient)
 
+	_, err := uc.GetCustomerStatus(ctx, GetCustomerStatusInput{CustomerID: id})
 	if !errors.Is(err, domain.ErrCustomerNotFound) {
 		t.Errorf("want ErrCustomerNotFound, got %v", err)
 	}
@@ -102,13 +78,9 @@ func TestGetCustomerStatus_NotFound(t *testing.T) {
 func TestGetCustomerStatus_InvalidID(t *testing.T) {
 	repo := newFakeRepo()
 	uc := NewGetCustomerStatusUseCase(repo)
+	ctx := contextWithClaims(uuid.New(), nil, roles.RoleClient)
 
-	_, err := uc.GetCustomerStatus(context.Background(), GetCustomerStatusInput{
-		CustomerID:    uuid.Nil,
-		RequesterID:   uuid.New(),
-		RequesterRole: roles.RoleClient,
-	})
-
+	_, err := uc.GetCustomerStatus(ctx, GetCustomerStatusInput{CustomerID: uuid.Nil})
 	if !errors.Is(err, domain.ErrInvalidCustomerID) {
 		t.Errorf("want ErrInvalidCustomerID, got %v", err)
 	}

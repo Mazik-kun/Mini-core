@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/Mazik-kun/mini-core/pkg/authjwt"
 	"github.com/Mazik-kun/mini-core/pkg/roles"
 	"github.com/Mazik-kun/mini-core/services/customer/internal/domain"
 )
@@ -24,19 +25,18 @@ func NewListCustomersUseCase(repo domain.CustomerRepository) *ListCustomersUseCa
 }
 
 type ListCustomersInput struct {
-	RequesterRole string
-	Statuses      []domain.Status
-	PageSize      int
-	PageToken     string
+	Statuses  []domain.Status
+	PageSize  int
+	PageToken string
 }
 
 type ListCustomersOutput struct {
 	Customers     []domain.Customer
-	NextPageToken string // пустая строка — страниц больше нет
+	NextPageToken string
 }
 
 func (uc *ListCustomersUseCase) ListCustomers(ctx context.Context, in ListCustomersInput) (ListCustomersOutput, error) {
-	if in.RequesterRole != roles.RoleOfficer && in.RequesterRole !=roles.RoleAdmin {
+	if err := authjwt.RequireRole(ctx, roles.RoleOfficer, roles.RoleAdmin); err != nil {
 		return ListCustomersOutput{}, domain.ErrAccessDenied
 	}
 
@@ -59,13 +59,11 @@ func (uc *ListCustomersUseCase) ListCustomers(ctx context.Context, in ListCustom
 		return ListCustomersOutput{}, err
 	}
 
-	// Пустой фильтр передаём как nil: в SQL "statuses IS NULL" означает "без фильтра".
 	var statuses []domain.Status
 	if len(in.Statuses) > 0 {
 		statuses = in.Statuses
 	}
 
-	// Просим на одну запись больше, чтобы узнать, есть ли следующая страница.
 	customers, err := uc.repo.List(ctx, domain.ListFilter{
 		Statuses: statuses,
 		Limit:    size + 1,
@@ -83,7 +81,6 @@ func (uc *ListCustomersUseCase) ListCustomers(ctx context.Context, in ListCustom
 	return out, nil
 }
 
-// Токен — непрозрачная для клиента строка: base64 от 16 байт UUID последней записи страницы.
 func encodePageToken(id uuid.UUID) string {
 	return base64.RawURLEncoding.EncodeToString(id[:])
 }
@@ -96,10 +93,10 @@ func decodePageToken(token string) (uuid.UUID, error) {
 	if err != nil {
 		return uuid.Nil, domain.ErrInvalidPageToken
 	}
-	var id uuid.UUID
 	if len(raw) != 16 {
 		return uuid.Nil, domain.ErrInvalidPageToken
 	}
+	var id uuid.UUID
 	copy(id[:], raw)
 	return id, nil
 }
