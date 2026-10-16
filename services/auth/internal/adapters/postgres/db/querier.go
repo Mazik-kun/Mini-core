@@ -19,6 +19,7 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	Revoke(ctx context.Context, id uuid.UUID) error
 	RevokeAllForUser(ctx context.Context, userID uuid.UUID) error
+	UpdateUserCustomerID(ctx context.Context, arg UpdateUserCustomerIDParams) error
 }
 
 var _ Querier = (*Queries)(nil)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net"
 	"os"
@@ -17,6 +18,8 @@ import (
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/hasher"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/httpserver"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/jwt"
+	authkafka "github.com/Mazik-kun/mini-core/services/auth/internal/adapters/kafka"
+	kafkautil "github.com/Mazik-kun/mini-core/pkg/kafka"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/postgres"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/postgres/db"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/app"
@@ -75,6 +78,8 @@ func main() {
 	producer := kafka.NewProducer(cfg.KafkaBrokers)
 	defer producer.Close()
 
+	dedupeStore := kafkautil.NewRedisDedupeStoreFromAddr(cfg.RedisAddr)
+	defer dedupeStore.Close()
 	if cfg.BootstrapAdminEmail != "" && cfg.BootstrapAdminPassword != "" {
 		if err := app.BootstrapAdmin(
 			ctx,
@@ -123,6 +128,15 @@ func main() {
 	validateTokenUC := app.NewValidateTokenUseCase(verifier)
 	createOfficerUC := app.NewCreateOfficerUseCase(userRepo, argon)
 
+	applyCustomerCreatedUC := app.NewApplyCustomerCreatedUseCase(userRepo)
+
+	customerEventsConsumer := authkafka.NewConsumer(
+		cfg.KafkaBrokers,
+		cfg.KafkaGroupID,
+		dedupeStore,
+		applyCustomerCreatedUC,
+		logger,
+	)
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
 		logger.Error("listen", "err", err)
@@ -162,6 +176,13 @@ func main() {
 	}
 
 	go runHTTPServer(ctx, httpSrv, logger)
+
+	go func() {
+		logger.Info("customer.events consumer started", "group", cfg.KafkaGroupID)
+		if err := customerEventsConsumer.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Error("customer.events consumer stopped", "err", err)
+		}
+	}()
 	go stopGRPCOnContextDone(ctx, grpcServer)
 
 	logger.Info("auth service started",

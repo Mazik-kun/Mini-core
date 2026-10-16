@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -94,4 +95,18 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const updateUserCustomerID = `-- name: UpdateUserCustomerID :exec
+UPDATE users SET customer_id = $2, updated_at = now() WHERE id = $1
+`
+
+type UpdateUserCustomerIDParams struct {
+	ID         uuid.UUID
+	CustomerID pgtype.UUID
+}
+
+func (q *Queries) UpdateUserCustomerID(ctx context.Context, arg UpdateUserCustomerIDParams) error {
+	_, err := q.db.Exec(ctx, updateUserCustomerID, arg.ID, arg.CustomerID)
+	return err
 }

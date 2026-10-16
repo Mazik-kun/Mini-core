@@ -61,11 +61,21 @@ func (r *countingRepo) UpdateStatus(_ context.Context, _ uuid.UUID, _ domain.Sta
 func (r *countingRepo) List(_ context.Context, _ domain.ListFilter) ([]domain.Customer, error) {
 	return nil, nil
 }
+type fakePublisher struct {
+	calls []kafkautil.Envelope
+	err   error
+}
+
+func (p *fakePublisher) Publish(ctx context.Context, topic string, envelope kafkautil.Envelope) error {
+	p.calls = append(p.calls, envelope)
+	return p.err
+}
 
 // Повторный event с тем же event_id → CreateCustomer вызван один раз.
 func TestConsumer_DedupeSkipsRepeatedEvent(t *testing.T) {
 	repo := &countingRepo{}
-	createCustomer := app.NewCreateCustomerUseCase(repo)
+	publisher := &fakePublisher{}
+	createCustomer := app.NewCreateCustomerUseCase(repo, publisher)
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	consumer := NewConsumer(nil, "test", newFakeDedupeStore(), createCustomer, log)
 
@@ -95,7 +105,8 @@ func TestConsumer_DedupeSkipsRepeatedEvent(t *testing.T) {
 // Событие с ролью OFFICER не создаёт клиента.
 func TestConsumer_SkipsNonClientRole(t *testing.T) {
 	repo := &countingRepo{}
-	createCustomer := app.NewCreateCustomerUseCase(repo)
+	publisher := &fakePublisher{}
+createCustomer := app.NewCreateCustomerUseCase(repo, publisher)
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	consumer := NewConsumer(nil, "test", newFakeDedupeStore(), createCustomer, log)
 
@@ -116,3 +127,4 @@ func TestConsumer_SkipsNonClientRole(t *testing.T) {
 		t.Fatalf("CreateCustomer вызван %d раз, ожидали 0", repo.createCnt)
 	}
 }
+

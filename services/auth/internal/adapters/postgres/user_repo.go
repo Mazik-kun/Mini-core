@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/postgres/db"
 	"github.com/Mazik-kun/mini-core/services/auth/internal/domain"
@@ -75,6 +76,17 @@ func (r *UserRepository) ExistsByRole(ctx context.Context, role string) (bool, e
 		return false, fmt.Errorf("exists user by role: %w", err)
 	}
 	return exists, nil
+}
+
+func (r *UserRepository) UpdateCustomerID(ctx context.Context, userID, customerID uuid.UUID) error {
+	err := r.q.UpdateUserCustomerID(ctx, db.UpdateUserCustomerIDParams{
+		ID:         userID,
+		CustomerID: pgtype.UUID{Bytes: customerID, Valid: true},
+	})
+	if err != nil {
+		return fmt.Errorf("update user customer_id: %w", err)
+	}
+	return nil
 }
 
 func toDomain(u db.User) domain.User {

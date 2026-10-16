@@ -72,7 +72,9 @@ func main() {
 	getCustomerStatus := app.NewGetCustomerStatusUseCase(repo)
 	listCustomers := app.NewListCustomersUseCase(repo)
 	updateProfile := app.NewUpdateProfileUseCase(repo)
-	createCustomer := app.NewCreateCustomerUseCase(repo)
+	producer := kafkautil.NewProducer(cfg.KafkaBrokers)
+	defer producer.Close()
+	createCustomer := app.NewCreateCustomerUseCase(repo, producer)
 
 	// Задел под KYC-консьюмер (kafka.events) — отдельная задача.
 	_ = app.NewApplyKycDecisionUseCase(repo)

@@ -14,3 +14,6 @@ WHERE id = $1;
 
 -- name: ExistsUserByRole :one
 SELECT EXISTS(SELECT 1 FROM users WHERE role = $1);
+
+-- name: UpdateUserCustomerID :exec
+UPDATE users SET customer_id = $2, updated_at = now() WHERE id = $1;

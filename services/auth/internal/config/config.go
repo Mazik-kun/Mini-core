@@ -16,6 +16,8 @@ type Config struct {
 	JWTPublicKeyPath  string
 	JWTKeyID          string
 	KafkaBrokers      []string
+	KafkaGroupID string
+	RedisAddr    string
 
 	BootstrapAdminEmail    string
 	BootstrapAdminPassword string
@@ -32,6 +34,8 @@ func Load() (*Config, error) {
 		JWTPublicKeyPath:  os.Getenv("JWT_PUBLIC_KEY_PATH"),
 		JWTKeyID:          os.Getenv("JWT_KEY_ID"),
 		KafkaBrokers:      parseKafkaBrokers(os.Getenv("KAFKA_BROKERS")),
+		KafkaGroupID: os.Getenv("KAFKA_GROUP_ID"),
+		RedisAddr:    os.Getenv("REDIS_ADDR"),
 
 		BootstrapAdminEmail:    os.Getenv("BOOTSTRAP_ADMIN_EMAIL"),
 		BootstrapAdminPassword: os.Getenv("BOOTSTRAP_ADMIN_PASSWORD"),
@@ -39,6 +43,12 @@ func Load() (*Config, error) {
 
 	if cfg.GRPCAddr == "" {
 		cfg.GRPCAddr = ":50051"
+	}
+	if cfg.KafkaGroupID == "" {
+		cfg.KafkaGroupID = "auth-service"
+	}
+	if cfg.RedisAddr == "" {
+		return nil, errors.New("REDIS_ADDR is not set")
 	}
 	if cfg.HTTPAddr == "" {
 		cfg.HTTPAddr = ":8080"
