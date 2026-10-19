@@ -151,10 +151,7 @@ func TestRegister_PublishesUserRegisteredEvent(t *testing.T) {
 	}
 
 	var payload struct {
-		
-		
-		UserID uuid.UUID `json:"user_id
-		"`
+		UserID uuid.UUID `json:"user_id"`
 		Email  string    `json:"email"`
 		Role   string    `json:"role"`
 	}
