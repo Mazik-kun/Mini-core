@@ -1,4 +1,4 @@
-package kafka
+﻿package kafka
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	kafkautil "github.com/Mazik-kun/mini-core/pkg/kafka"
-	"github.com/Mazik-kun/mini-core/services/auth/internal/app"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/core/app"
 )
 
 const (

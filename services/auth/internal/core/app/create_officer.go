@@ -1,4 +1,4 @@
-package app
+﻿package app
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/Mazik-kun/mini-core/pkg/authjwt"
 	"github.com/Mazik-kun/mini-core/pkg/roles"
-	"github.com/Mazik-kun/mini-core/services/auth/internal/domain"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/core/domain"
 )
 
 type CreateOfficerUseCase struct {

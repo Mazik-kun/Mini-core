@@ -1,4 +1,4 @@
-package app_test
+﻿package app_test
 
 import (
 	"context"
@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/Mazik-kun/mini-core/pkg/kafka"
-	"github.com/Mazik-kun/mini-core/services/auth/internal/app"
-	"github.com/Mazik-kun/mini-core/services/auth/internal/domain"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/core/app"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/core/domain"
 )
 
 type fakeRepo struct {
@@ -74,7 +74,7 @@ func (p *fakePublisher) Publish(_ context.Context, topic string, envelope kafka.
 func newUseCase() (*app.RegisterUseCase, *fakeRepo, *fakePublisher) {
 	repo := &fakeRepo{users: map[string]domain.User{}}
 	publisher := &fakePublisher{}
-	return app.NewRegisterUseCase(repo, fakeHasher{}, publisher), repo, publisher
+	return app.NewRegisterUseCase(repo, fakeHasher{}, publisher, "auth.events"), repo, publisher
 }
 
 func TestRegister_Success(t *testing.T) {
@@ -151,7 +151,10 @@ func TestRegister_PublishesUserRegisteredEvent(t *testing.T) {
 	}
 
 	var payload struct {
-		UserID uuid.UUID `json:"user_id"`
+		
+		
+		UserID uuid.UUID `json:"user_id
+		"`
 		Email  string    `json:"email"`
 		Role   string    `json:"role"`
 	}

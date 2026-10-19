@@ -1,4 +1,4 @@
-package app
+﻿package app
 
 import (
 	"context"
@@ -10,35 +10,33 @@ import (
 
 	"github.com/Mazik-kun/mini-core/pkg/kafka"
 	"github.com/Mazik-kun/mini-core/pkg/roles"
-	"github.com/Mazik-kun/mini-core/services/auth/internal/domain"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/core/domain"
 )
 
-const (
-	userRegisteredTopic     = "auth.events"
-	userRegisteredEventType = "user_registered"
-)
+const userRegisteredEventType = "user_registered"
 
-// EventPublisher публикует события в брокер.
-// Объявлен здесь, чтобы use case не зависел от конкретной реализации.
 type EventPublisher interface {
 	Publish(ctx context.Context, topic string, envelope kafka.Envelope) error
 }
 
 type RegisterUseCase struct {
-	users          domain.UserRepository
-	hasher         domain.PasswordHasher
-	eventPublisher EventPublisher
+	users           domain.UserRepository
+	hasher          domain.PasswordHasher
+	eventPublisher  EventPublisher
+	authEventsTopic string
 }
 
 func NewRegisterUseCase(
 	users domain.UserRepository,
 	hasher domain.PasswordHasher,
 	eventPublisher EventPublisher,
+	authEventsTopic string,
 ) *RegisterUseCase {
 	return &RegisterUseCase{
-		users:          users,
-		hasher:         hasher,
-		eventPublisher: eventPublisher,
+		users:           users,
+		hasher:          hasher,
+		eventPublisher:  eventPublisher,
+		authEventsTopic: authEventsTopic,
 	}
 }
 
@@ -52,7 +50,6 @@ type RegisterOutput struct {
 	Email  string
 }
 
-// userRegisteredPayload — payload события user_registered.
 type userRegisteredPayload struct {
 	UserID uuid.UUID `json:"user_id"`
 	Email  string    `json:"email"`
@@ -62,32 +59,21 @@ type userRegisteredPayload struct {
 func (uc *RegisterUseCase) Register(ctx context.Context, in RegisterInput) (RegisterOutput, error) {
 	email := strings.ToLower(strings.TrimSpace(in.Email))
 
-	if err := validateEmail(email); err != nil {
-		return RegisterOutput{}, err
-	}
-	if err := validatePassword(in.Password); err != nil {
-		return RegisterOutput{}, err
-	}
+	if err := validateEmail(email); err != nil { return RegisterOutput{}, err }
+	if err := validatePassword(in.Password); err != nil { return RegisterOutput{}, err }
 
 	hash, err := uc.hasher.Hash(in.Password)
-	if err != nil {
-		return RegisterOutput{}, fmt.Errorf("hash password: %w", err)
-	}
+	if err != nil { return RegisterOutput{}, fmt.Errorf("hash password: %w", err) }
 
 	user, err := uc.users.Create(ctx, domain.User{
 		Email:        email,
 		PasswordHash: hash,
 		Role:         roles.RoleClient,
 	})
-	if err != nil {
-		return RegisterOutput{}, err
-	}
+	if err != nil { return RegisterOutput{}, err }
 
-	// Упрощение: падение публикации не откатывает регистрацию —
-	// пользователь уже сохранён, событие просто потеряется, пишем в лог.
 	if err := uc.publishUserRegistered(ctx, user); err != nil {
-		slog.Error("не удалось опубликовать user_registered",
-			"user_id", user.ID, "error", err)
+		slog.Error("не удалось опубликовать user_registered", "user_id", user.ID, "error", err)
 	}
 
 	return RegisterOutput{UserID: user.ID, Email: user.Email}, nil
@@ -99,8 +85,6 @@ func (uc *RegisterUseCase) publishUserRegistered(ctx context.Context, user domai
 		Email:  user.Email,
 		Role:   user.Role,
 	})
-	if err != nil {
-		return fmt.Errorf("собрать конверт: %w", err)
-	}
-	return uc.eventPublisher.Publish(ctx, userRegisteredTopic, envelope)
+	if err != nil { return fmt.Errorf("собрать конверт: %w", err) }
+	return uc.eventPublisher.Publish(ctx, uc.authEventsTopic, envelope)
 }

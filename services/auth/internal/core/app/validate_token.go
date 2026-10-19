@@ -1,9 +1,9 @@
-package app
+﻿package app
 
 import (
     "context"
 
-    "github.com/Mazik-kun/mini-core/services/auth/internal/domain"
+    "github.com/Mazik-kun/mini-core/services/auth/internal/core/domain"
 )
 
 type ValidateTokenUseCase struct {

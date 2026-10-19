@@ -1,4 +1,4 @@
-package jwt
+﻿package jwt
 
 import (
 	"crypto/ed25519"
@@ -6,11 +6,12 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	jwtlib "github.com/golang-jwt/jwt/v5"
 
-	"github.com/Mazik-kun/mini-core/services/auth/internal/domain"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/core/domain"
 )
 
 type Issuer struct {
@@ -18,28 +19,22 @@ type Issuer struct {
 	accessTTL  time.Duration
 }
 
-func NewIssuer(privateKeyPEM []byte, accessTTL time.Duration) (*Issuer, error) {
-	if accessTTL <= 0 {
-		return nil, errors.New("jwt: accessTTL must be positive")
-	}
-	key, err := LoadPrivateKey(privateKeyPEM)
-	if err != nil {
-		return nil, err
-	}
+func NewIssuer(privateKeyPath string, accessTTL time.Duration) (*Issuer, error) {
+	if accessTTL <= 0 { return nil, errors.New("jwt: accessTTL must be positive") }
+	pemBytes, err := os.ReadFile(privateKeyPath)
+	if err != nil { return nil, fmt.Errorf("jwt: read private key file: %w", err) }
+	key, err := LoadPrivateKey(pemBytes)
+	if err != nil { return nil, err }
 	return &Issuer{privateKey: key, accessTTL: accessTTL}, nil
 }
 
 func (i *Issuer) Issue(c domain.Claims) (domain.TokenPair, error) {
 	now := time.Now().UTC()
 	accessToken, err := i.issueAccess(c, now, now.Add(i.accessTTL))
-	if err != nil {
-		return domain.TokenPair{}, fmt.Errorf("issue access token: %w", err)
-	}
+	if err != nil { return domain.TokenPair{}, fmt.Errorf("issue access token: %w", err) }
 
 	refreshToken, err := generateRefreshToken()
-	if err != nil {
-		return domain.TokenPair{}, fmt.Errorf("generate refresh token: %w", err)
-	}
+	if err != nil { return domain.TokenPair{}, fmt.Errorf("generate refresh token: %w", err) }
 
 	return domain.TokenPair{
 		AccessToken:  accessToken,
@@ -64,8 +59,6 @@ func (i *Issuer) issueAccess(c domain.Claims, issuedAt, expiresAt time.Time) (st
 
 func generateRefreshToken() (string, error) {
 	buf := make([]byte, 32)
-	if _, err := rand.Read(buf); err != nil {
-		return "", err
-	}
+	if _, err := rand.Read(buf); err != nil { return "", err }
 	return base64.RawURLEncoding.EncodeToString(buf), nil
 }

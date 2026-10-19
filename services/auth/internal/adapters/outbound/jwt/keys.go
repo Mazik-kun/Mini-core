@@ -6,6 +6,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"os"
 )
 
 func LoadPrivateKey(pemBytes []byte) (ed25519.PrivateKey, error) {
@@ -44,4 +45,11 @@ func LoadPublicKey(pemBytes []byte) (ed25519.PublicKey, error) {
 		return nil, errors.New("jwt: public key is not Ed25519")
 	}
 	return key, nil
+}
+func LoadPublicKeyFromFile(path string) (ed25519.PublicKey, error) {
+	pemBytes, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read public key file: %w", err)
+	}
+	return LoadPublicKey(pemBytes)
 }

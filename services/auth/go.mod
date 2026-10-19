@@ -4,7 +4,7 @@ go 1.27.1
 
 require (
 	github.com/Mazik-kun/mini-core/contracts v0.0.0-20261008133849-259a96da4f45
-	github.com/Mazik-kun/mini-core/pkg v0.0.0-20261008133849-259a96da4f45
+	github.com/Mazik-kun/mini-core/pkg v0.0.0-20261016125509-ad159ec0d84a
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.11.0
@@ -14,10 +14,16 @@ require (
 )
 
 require (
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
+	github.com/klauspost/compress v1.18.7 // indirect
+	github.com/pierrec/lz4/v4 v4.1.21 // indirect
+	github.com/redis/go-redis/v9 v9.7.3 // indirect
+	github.com/segmentio/kafka-go v0.4.49 // indirect
 	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect

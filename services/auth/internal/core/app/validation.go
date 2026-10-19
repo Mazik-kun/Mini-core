@@ -1,9 +1,9 @@
-package app
+﻿package app
 
 import (
 	"strings"
 
-	"github.com/Mazik-kun/mini-core/services/auth/internal/domain"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/core/domain"
 )
 
 func validateEmail(email string) error {

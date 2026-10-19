@@ -1,4 +1,4 @@
-package app
+﻿package app
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/Mazik-kun/mini-core/pkg/roles"
-	"github.com/Mazik-kun/mini-core/services/auth/internal/domain"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/core/domain"
 )
 
 // BootstrapAdmin создаёт первого ADMIN, если в БД ещё нет ни одного.

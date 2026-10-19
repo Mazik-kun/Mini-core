@@ -1,6 +1,6 @@
-package hasher
+﻿package hasher
 
-import "github.com/Mazik-kun/mini-core/services/auth/internal/domain/password"
+import "github.com/Mazik-kun/mini-core/services/auth/internal/core/domain/password"
 
 type Argon2 struct{}
 
@@ -13,3 +13,4 @@ func (Argon2) Hash(plain string) (string, error) {
 func (Argon2) Verify(plain, hash string) (bool, error) {
 	return password.VerifyPassword(plain, hash)
 }
+

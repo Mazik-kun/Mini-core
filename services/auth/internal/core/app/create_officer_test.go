@@ -1,4 +1,4 @@
-package app_test
+﻿package app_test
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 
 	"github.com/Mazik-kun/mini-core/pkg/authjwt"
 	"github.com/Mazik-kun/mini-core/pkg/roles"
-	"github.com/Mazik-kun/mini-core/services/auth/internal/app"
-	"github.com/Mazik-kun/mini-core/services/auth/internal/domain"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/core/app"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/core/domain"
 )
 
 func newCreateOfficerUseCase() (*app.CreateOfficerUseCase, *fakeRepo) {

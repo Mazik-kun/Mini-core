@@ -1,4 +1,4 @@
-package postgres
+﻿package postgres
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/postgres/db"
-	"github.com/Mazik-kun/mini-core/services/auth/internal/domain"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/adapters/outbound/postgres/db"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/core/domain"
 )
 
 type RefreshTokenRepository struct {

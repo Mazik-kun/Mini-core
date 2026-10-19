@@ -1,4 +1,4 @@
-package grpcserver
+﻿package grpcserver
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/Mazik-kun/mini-core/services/auth/internal/domain"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/core/domain"
 )
 
 func mapError(err error) error {

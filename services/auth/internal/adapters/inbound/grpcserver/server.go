@@ -1,11 +1,11 @@
-package grpcserver
+﻿package grpcserver
 
 import (
 	"context"
 	"log/slog"
 
 	authv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/auth/v1"
-	"github.com/Mazik-kun/mini-core/services/auth/internal/app"
+	"github.com/Mazik-kun/mini-core/services/auth/internal/core/app"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
