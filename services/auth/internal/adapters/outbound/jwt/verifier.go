@@ -59,7 +59,6 @@ func (v *Verifier) Verify(tokenString string) (domain.Claims, error) {
 	}, nil
 }
 
-// Вынесенная именованная функция вместо анонимной
 func (v *Verifier) parseToken(token *jwtlib.Token) (any, error) {
 	if _, ok := token.Method.(*jwtlib.SigningMethodEd25519); !ok {
 		return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])

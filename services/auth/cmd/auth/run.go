@@ -43,7 +43,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger) error {
 	argon := hasher.NewArgon2()
 
 	// 3. JWT
-	issuer, err := jwt.NewIssuer(cfg.JWTPrivateKeyPath, cfg.JWTAccessTTL)
+	issuer, err := jwt.NewIssuer(cfg.JWTPrivateKeyPath, cfg.JWTKeyID, cfg.JWTAccessTTL)
 	if err != nil { return err }
 	verifier, err := jwt.NewVerifier(cfg.JWTPublicKeyPath)
 	if err != nil { return err }

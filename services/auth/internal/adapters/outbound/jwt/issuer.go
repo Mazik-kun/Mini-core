@@ -16,16 +16,17 @@ import (
 
 type Issuer struct {
 	privateKey ed25519.PrivateKey
+	keyID string
 	accessTTL  time.Duration
 }
 
-func NewIssuer(privateKeyPath string, accessTTL time.Duration) (*Issuer, error) {
+func NewIssuer(privateKeyPath string, keyID string, accessTTL time.Duration) (*Issuer, error) {
 	if accessTTL <= 0 { return nil, errors.New("jwt: accessTTL must be positive") }
 	pemBytes, err := os.ReadFile(privateKeyPath)
 	if err != nil { return nil, fmt.Errorf("jwt: read private key file: %w", err) }
 	key, err := LoadPrivateKey(pemBytes)
 	if err != nil { return nil, err }
-	return &Issuer{privateKey: key, accessTTL: accessTTL}, nil
+	return &Issuer{privateKey: key,keyID: keyID, accessTTL: accessTTL}, nil
 }
 
 func (i *Issuer) Issue(c domain.Claims) (domain.TokenPair, error) {
@@ -54,6 +55,7 @@ func (i *Issuer) issueAccess(c domain.Claims, issuedAt, expiresAt time.Time) (st
 		mapClaims["customer_id"] = c.CustomerID.String()
 	}
 	token := jwtlib.NewWithClaims(jwtlib.SigningMethodEdDSA, mapClaims)
+	token.Header["kid"] = i.keyID 
 	return token.SignedString(i.privateKey)
 }
 

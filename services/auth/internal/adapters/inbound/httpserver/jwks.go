@@ -5,9 +5,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+
 )
 
-// jwk — одно значение в JWK Set (RFC 7517/8037).
 type jwk struct {
 	Kty string `json:"kty"`
 	Crv string `json:"crv"`
@@ -21,7 +21,6 @@ type jwksDocument struct {
 	Keys []jwk `json:"keys"`
 }
 
-// BuildJWKS собирает JSON JWK Set с публичным Ed25519-ключом.
 func BuildJWKS(publicKey ed25519.PublicKey, keyID string) ([]byte, error) {
 	if len(publicKey) != ed25519.PublicKeySize {
 		return nil, errors.New("jwks: invalid Ed25519 public key size")

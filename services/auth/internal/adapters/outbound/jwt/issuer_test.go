@@ -13,7 +13,8 @@ func TestIssueVerifyRoundTrip(t *testing.T) {
 	privPath := "../../../../../secrets/jwt_private.pem"
 	pubPath := "../../../../../secrets/jwt_public.pem"
 
-	issuer, err := NewIssuer(privPath, 15*time.Minute)
+	// Добавили аргумент "auth-1"
+	issuer, err := NewIssuer(privPath, "auth-1", 15*time.Minute)
 	if err != nil {
 		t.Skip("no private key, skip")
 	}
@@ -45,7 +46,8 @@ func TestVerifyExpired(t *testing.T) {
 	privPath := "../../../../../secrets/jwt_private.pem"
 	pubPath := "../../../../../secrets/jwt_public.pem"
 
-	issuer, err := NewIssuer(privPath, -1*time.Minute)
+	// Добавили аргумент "auth-1"
+	issuer, err := NewIssuer(privPath, "auth-1", -1*time.Minute)
 	if err != nil {
 		t.Skip("no private key, skip")
 	}
