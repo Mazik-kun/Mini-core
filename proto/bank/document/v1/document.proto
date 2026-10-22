@@ -18,8 +18,10 @@ enum DocumentType {
 // DocumentStatus — состояние загрузки документа.
 enum DocumentStatus {
     DOCUMENT_STATUS_UNSPECIFIED = 0;
-    DOCUMENT_STATUS_UPLOADED = 1;
+    DOCUMENT_STATUS_UPLOADED = 1;   // legacy, не используется
     DOCUMENT_STATUS_CONFIRMED = 2;
+    DOCUMENT_STATUS_PENDING = 3;    // после InitUpload
+    DOCUMENT_STATUS_REJECTED = 4;   // невалидный size/content-type на Confirm
 }
 
 service DocumentService {
@@ -71,6 +73,7 @@ message GetDownloadUrlResponse {
 message ListDocumentsRequest {
     string customer_id = 1;
     bank.common.v1.PageRequest page = 2;
+    DocumentStatus status_filter = 3;  // UNSPECIFIED = все (kyc-service просит CONFIRMED)
 }
 
 message ListDocumentsResponse {

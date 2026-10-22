@@ -81,8 +81,10 @@ type DocumentStatus int32
 
 const (
 	DocumentStatus_DOCUMENT_STATUS_UNSPECIFIED DocumentStatus = 0
-	DocumentStatus_DOCUMENT_STATUS_UPLOADED    DocumentStatus = 1
+	DocumentStatus_DOCUMENT_STATUS_UPLOADED    DocumentStatus = 1 // legacy, не используется
 	DocumentStatus_DOCUMENT_STATUS_CONFIRMED   DocumentStatus = 2
+	DocumentStatus_DOCUMENT_STATUS_PENDING     DocumentStatus = 3 // после InitUpload
+	DocumentStatus_DOCUMENT_STATUS_REJECTED    DocumentStatus = 4 // невалидный size/content-type на Confirm
 )
 
 // Enum value maps for DocumentStatus.
@@ -91,11 +93,15 @@ var (
 		0: "DOCUMENT_STATUS_UNSPECIFIED",
 		1: "DOCUMENT_STATUS_UPLOADED",
 		2: "DOCUMENT_STATUS_CONFIRMED",
+		3: "DOCUMENT_STATUS_PENDING",
+		4: "DOCUMENT_STATUS_REJECTED",
 	}
 	DocumentStatus_value = map[string]int32{
 		"DOCUMENT_STATUS_UNSPECIFIED": 0,
 		"DOCUMENT_STATUS_UPLOADED":    1,
 		"DOCUMENT_STATUS_CONFIRMED":   2,
+		"DOCUMENT_STATUS_PENDING":     3,
+		"DOCUMENT_STATUS_REJECTED":    4,
 	}
 )
 
@@ -506,6 +512,7 @@ type ListDocumentsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	CustomerId    string                 `protobuf:"bytes,1,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
 	Page          *v1.PageRequest        `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	StatusFilter  DocumentStatus         `protobuf:"varint,3,opt,name=status_filter,json=statusFilter,proto3,enum=bank.document.v1.DocumentStatus" json:"status_filter,omitempty"` // UNSPECIFIED = все (kyc-service просит CONFIRMED)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -552,6 +559,13 @@ func (x *ListDocumentsRequest) GetPage() *v1.PageRequest {
 		return x.Page
 	}
 	return nil
+}
+
+func (x *ListDocumentsRequest) GetStatusFilter() DocumentStatus {
+	if x != nil {
+		return x.StatusFilter
+	}
+	return DocumentStatus_DOCUMENT_STATUS_UNSPECIFIED
 }
 
 type ListDocumentsResponse struct {
@@ -751,11 +765,12 @@ const file_bank_document_v1_document_proto_rawDesc = "" +
 	"\x16GetDownloadUrlResponse\x12!\n" +
 	"\fdownload_url\x18\x01 \x01(\tR\vdownloadUrl\x129\n" +
 	"\n" +
-	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"h\n" +
+	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"\xaf\x01\n" +
 	"\x14ListDocumentsRequest\x12\x1f\n" +
 	"\vcustomer_id\x18\x01 \x01(\tR\n" +
 	"customerId\x12/\n" +
-	"\x04page\x18\x02 \x01(\v2\x1b.bank.common.v1.PageRequestR\x04page\"\x83\x01\n" +
+	"\x04page\x18\x02 \x01(\v2\x1b.bank.common.v1.PageRequestR\x04page\x12E\n" +
+	"\rstatus_filter\x18\x03 \x01(\x0e2 .bank.document.v1.DocumentStatusR\fstatusFilter\"\x83\x01\n" +
 	"\x15ListDocumentsResponse\x128\n" +
 	"\tdocuments\x18\x01 \x03(\v2\x1a.bank.document.v1.DocumentR\tdocuments\x120\n" +
 	"\x04page\x18\x02 \x01(\v2\x1c.bank.common.v1.PageResponseR\x04page\"\x85\x01\n" +
@@ -770,11 +785,13 @@ const file_bank_document_v1_document_proto_rawDesc = "" +
 	"\x19DOCUMENT_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16DOCUMENT_TYPE_PASSPORT\x10\x01\x12\x18\n" +
 	"\x14DOCUMENT_TYPE_SELFIE\x10\x02\x12\"\n" +
-	"\x1eDOCUMENT_TYPE_PROOF_OF_ADDRESS\x10\x03*n\n" +
+	"\x1eDOCUMENT_TYPE_PROOF_OF_ADDRESS\x10\x03*\xa9\x01\n" +
 	"\x0eDocumentStatus\x12\x1f\n" +
 	"\x1bDOCUMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18DOCUMENT_STATUS_UPLOADED\x10\x01\x12\x1d\n" +
-	"\x19DOCUMENT_STATUS_CONFIRMED\x10\x022\xfd\x03\n" +
+	"\x19DOCUMENT_STATUS_CONFIRMED\x10\x02\x12\x1b\n" +
+	"\x17DOCUMENT_STATUS_PENDING\x10\x03\x12\x1c\n" +
+	"\x18DOCUMENT_STATUS_REJECTED\x10\x042\xfd\x03\n" +
 	"\x0fDocumentService\x12W\n" +
 	"\n" +
 	"InitUpload\x12#.bank.document.v1.InitUploadRequest\x1a$.bank.document.v1.InitUploadResponse\x12S\n" +
@@ -821,25 +838,26 @@ var file_bank_document_v1_document_proto_depIdxs = []int32{
 	0,  // 3: bank.document.v1.InitUploadRequest.document_type:type_name -> bank.document.v1.DocumentType
 	12, // 4: bank.document.v1.GetDownloadUrlResponse.expires_at:type_name -> google.protobuf.Timestamp
 	13, // 5: bank.document.v1.ListDocumentsRequest.page:type_name -> bank.common.v1.PageRequest
-	2,  // 6: bank.document.v1.ListDocumentsResponse.documents:type_name -> bank.document.v1.Document
-	14, // 7: bank.document.v1.ListDocumentsResponse.page:type_name -> bank.common.v1.PageResponse
-	0,  // 8: bank.document.v1.HasRequiredDocumentsRequest.required_types:type_name -> bank.document.v1.DocumentType
-	0,  // 9: bank.document.v1.HasRequiredDocumentsResponse.missing_types:type_name -> bank.document.v1.DocumentType
-	3,  // 10: bank.document.v1.DocumentService.InitUpload:input_type -> bank.document.v1.InitUploadRequest
-	5,  // 11: bank.document.v1.DocumentService.ConfirmUpload:input_type -> bank.document.v1.ConfirmUploadRequest
-	6,  // 12: bank.document.v1.DocumentService.GetDownloadUrl:input_type -> bank.document.v1.GetDownloadUrlRequest
-	8,  // 13: bank.document.v1.DocumentService.ListDocuments:input_type -> bank.document.v1.ListDocumentsRequest
-	10, // 14: bank.document.v1.DocumentService.HasRequiredDocuments:input_type -> bank.document.v1.HasRequiredDocumentsRequest
-	4,  // 15: bank.document.v1.DocumentService.InitUpload:output_type -> bank.document.v1.InitUploadResponse
-	2,  // 16: bank.document.v1.DocumentService.ConfirmUpload:output_type -> bank.document.v1.Document
-	7,  // 17: bank.document.v1.DocumentService.GetDownloadUrl:output_type -> bank.document.v1.GetDownloadUrlResponse
-	9,  // 18: bank.document.v1.DocumentService.ListDocuments:output_type -> bank.document.v1.ListDocumentsResponse
-	11, // 19: bank.document.v1.DocumentService.HasRequiredDocuments:output_type -> bank.document.v1.HasRequiredDocumentsResponse
-	15, // [15:20] is the sub-list for method output_type
-	10, // [10:15] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	1,  // 6: bank.document.v1.ListDocumentsRequest.status_filter:type_name -> bank.document.v1.DocumentStatus
+	2,  // 7: bank.document.v1.ListDocumentsResponse.documents:type_name -> bank.document.v1.Document
+	14, // 8: bank.document.v1.ListDocumentsResponse.page:type_name -> bank.common.v1.PageResponse
+	0,  // 9: bank.document.v1.HasRequiredDocumentsRequest.required_types:type_name -> bank.document.v1.DocumentType
+	0,  // 10: bank.document.v1.HasRequiredDocumentsResponse.missing_types:type_name -> bank.document.v1.DocumentType
+	3,  // 11: bank.document.v1.DocumentService.InitUpload:input_type -> bank.document.v1.InitUploadRequest
+	5,  // 12: bank.document.v1.DocumentService.ConfirmUpload:input_type -> bank.document.v1.ConfirmUploadRequest
+	6,  // 13: bank.document.v1.DocumentService.GetDownloadUrl:input_type -> bank.document.v1.GetDownloadUrlRequest
+	8,  // 14: bank.document.v1.DocumentService.ListDocuments:input_type -> bank.document.v1.ListDocumentsRequest
+	10, // 15: bank.document.v1.DocumentService.HasRequiredDocuments:input_type -> bank.document.v1.HasRequiredDocumentsRequest
+	4,  // 16: bank.document.v1.DocumentService.InitUpload:output_type -> bank.document.v1.InitUploadResponse
+	2,  // 17: bank.document.v1.DocumentService.ConfirmUpload:output_type -> bank.document.v1.Document
+	7,  // 18: bank.document.v1.DocumentService.GetDownloadUrl:output_type -> bank.document.v1.GetDownloadUrlResponse
+	9,  // 19: bank.document.v1.DocumentService.ListDocuments:output_type -> bank.document.v1.ListDocumentsResponse
+	11, // 20: bank.document.v1.DocumentService.HasRequiredDocuments:output_type -> bank.document.v1.HasRequiredDocumentsResponse
+	16, // [16:21] is the sub-list for method output_type
+	11, // [11:16] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_bank_document_v1_document_proto_init() }

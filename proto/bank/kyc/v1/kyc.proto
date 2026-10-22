@@ -28,6 +28,7 @@ service KycService {
     rpc ApproveApplication(ApproveApplicationRequest) returns (Application);          // OFFICER
     rpc RejectApplication(RejectApplicationRequest) returns (Application);            // OFFICER
     rpc RequestMoreDocuments(RequestMoreDocumentsRequest) returns (Application);      // OFFICER
+    rpc ResubmitApplication(ResubmitApplicationRequest) returns (Application);        // CLIENT, из DOCS_REQUESTED
 }
 
 message Application {
@@ -81,4 +82,8 @@ message RequestMoreDocumentsRequest {
     string application_id = 1;
     string reviewer_id = 2;
     string message = 3;
+}
+
+message ResubmitApplicationRequest {
+    string application_id = 1;
 }

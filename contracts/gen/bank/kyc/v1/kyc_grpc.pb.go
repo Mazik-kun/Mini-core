@@ -26,6 +26,7 @@ const (
 	KycService_ApproveApplication_FullMethodName   = "/bank.kyc.v1.KycService/ApproveApplication"
 	KycService_RejectApplication_FullMethodName    = "/bank.kyc.v1.KycService/RejectApplication"
 	KycService_RequestMoreDocuments_FullMethodName = "/bank.kyc.v1.KycService/RequestMoreDocuments"
+	KycService_ResubmitApplication_FullMethodName  = "/bank.kyc.v1.KycService/ResubmitApplication"
 )
 
 // KycServiceClient is the client API for KycService service.
@@ -39,6 +40,7 @@ type KycServiceClient interface {
 	ApproveApplication(ctx context.Context, in *ApproveApplicationRequest, opts ...grpc.CallOption) (*Application, error)
 	RejectApplication(ctx context.Context, in *RejectApplicationRequest, opts ...grpc.CallOption) (*Application, error)
 	RequestMoreDocuments(ctx context.Context, in *RequestMoreDocumentsRequest, opts ...grpc.CallOption) (*Application, error)
+	ResubmitApplication(ctx context.Context, in *ResubmitApplicationRequest, opts ...grpc.CallOption) (*Application, error)
 }
 
 type kycServiceClient struct {
@@ -119,6 +121,16 @@ func (c *kycServiceClient) RequestMoreDocuments(ctx context.Context, in *Request
 	return out, nil
 }
 
+func (c *kycServiceClient) ResubmitApplication(ctx context.Context, in *ResubmitApplicationRequest, opts ...grpc.CallOption) (*Application, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Application)
+	err := c.cc.Invoke(ctx, KycService_ResubmitApplication_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // KycServiceServer is the server API for KycService service.
 // All implementations should embed UnimplementedKycServiceServer
 // for forward compatibility.
@@ -130,6 +142,7 @@ type KycServiceServer interface {
 	ApproveApplication(context.Context, *ApproveApplicationRequest) (*Application, error)
 	RejectApplication(context.Context, *RejectApplicationRequest) (*Application, error)
 	RequestMoreDocuments(context.Context, *RequestMoreDocumentsRequest) (*Application, error)
+	ResubmitApplication(context.Context, *ResubmitApplicationRequest) (*Application, error)
 }
 
 // UnimplementedKycServiceServer should be embedded to have
@@ -159,6 +172,9 @@ func (UnimplementedKycServiceServer) RejectApplication(context.Context, *RejectA
 }
 func (UnimplementedKycServiceServer) RequestMoreDocuments(context.Context, *RequestMoreDocumentsRequest) (*Application, error) {
 	return nil, status.Error(codes.Unimplemented, "method RequestMoreDocuments not implemented")
+}
+func (UnimplementedKycServiceServer) ResubmitApplication(context.Context, *ResubmitApplicationRequest) (*Application, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResubmitApplication not implemented")
 }
 func (UnimplementedKycServiceServer) testEmbeddedByValue() {}
 
@@ -306,6 +322,24 @@ func _KycService_RequestMoreDocuments_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _KycService_ResubmitApplication_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResubmitApplicationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(KycServiceServer).ResubmitApplication(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: KycService_ResubmitApplication_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(KycServiceServer).ResubmitApplication(ctx, req.(*ResubmitApplicationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // KycService_ServiceDesc is the grpc.ServiceDesc for KycService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -340,6 +374,10 @@ var KycService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RequestMoreDocuments",
 			Handler:    _KycService_RequestMoreDocuments_Handler,
+		},
+		{
+			MethodName: "ResubmitApplication",
+			Handler:    _KycService_ResubmitApplication_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

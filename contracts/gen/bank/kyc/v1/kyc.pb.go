@@ -623,6 +623,50 @@ func (x *RequestMoreDocumentsRequest) GetMessage() string {
 	return ""
 }
 
+type ResubmitApplicationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApplicationId string                 `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"application_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResubmitApplicationRequest) Reset() {
+	*x = ResubmitApplicationRequest{}
+	mi := &file_bank_kyc_v1_kyc_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResubmitApplicationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResubmitApplicationRequest) ProtoMessage() {}
+
+func (x *ResubmitApplicationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bank_kyc_v1_kyc_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResubmitApplicationRequest.ProtoReflect.Descriptor instead.
+func (*ResubmitApplicationRequest) Descriptor() ([]byte, []int) {
+	return file_bank_kyc_v1_kyc_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ResubmitApplicationRequest) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
 var File_bank_kyc_v1_kyc_proto protoreflect.FileDescriptor
 
 const file_bank_kyc_v1_kyc_proto_rawDesc = "" +
@@ -673,7 +717,9 @@ const file_bank_kyc_v1_kyc_proto_rawDesc = "" +
 	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\x12\x1f\n" +
 	"\vreviewer_id\x18\x02 \x01(\tR\n" +
 	"reviewerId\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessage*\xfc\x01\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\"C\n" +
+	"\x1aResubmitApplicationRequest\x12%\n" +
+	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId*\xfc\x01\n" +
 	"\tKycStatus\x12\x1a\n" +
 	"\x16KYC_STATUS_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10KYC_STATUS_DRAFT\x10\x01\x12\x18\n" +
@@ -683,7 +729,7 @@ const file_bank_kyc_v1_kyc_proto_rawDesc = "" +
 	"\x13KYC_STATUS_APPROVED\x10\x05\x12\x17\n" +
 	"\x13KYC_STATUS_REJECTED\x10\x06\x12\x1c\n" +
 	"\x18KYC_STATUS_AUTO_REJECTED\x10\a\x12\x1d\n" +
-	"\x19KYC_STATUS_DOCS_REQUESTED\x10\b2\xf1\x04\n" +
+	"\x19KYC_STATUS_DOCS_REQUESTED\x10\b2\xcb\x05\n" +
 	"\n" +
 	"KycService\x12T\n" +
 	"\x11SubmitApplication\x12%.bank.kyc.v1.SubmitApplicationRequest\x1a\x18.bank.kyc.v1.Application\x12N\n" +
@@ -692,7 +738,8 @@ const file_bank_kyc_v1_kyc_proto_rawDesc = "" +
 	"\x10ClaimApplication\x12$.bank.kyc.v1.ClaimApplicationRequest\x1a\x18.bank.kyc.v1.Application\x12V\n" +
 	"\x12ApproveApplication\x12&.bank.kyc.v1.ApproveApplicationRequest\x1a\x18.bank.kyc.v1.Application\x12T\n" +
 	"\x11RejectApplication\x12%.bank.kyc.v1.RejectApplicationRequest\x1a\x18.bank.kyc.v1.Application\x12Z\n" +
-	"\x14RequestMoreDocuments\x12(.bank.kyc.v1.RequestMoreDocumentsRequest\x1a\x18.bank.kyc.v1.ApplicationB@Z>github.com/Mazik-kun/mini-core/contracts/gen/bank/kyc/v1;kycv1b\x06proto3"
+	"\x14RequestMoreDocuments\x12(.bank.kyc.v1.RequestMoreDocumentsRequest\x1a\x18.bank.kyc.v1.Application\x12X\n" +
+	"\x13ResubmitApplication\x12'.bank.kyc.v1.ResubmitApplicationRequest\x1a\x18.bank.kyc.v1.ApplicationB@Z>github.com/Mazik-kun/mini-core/contracts/gen/bank/kyc/v1;kycv1b\x06proto3"
 
 var (
 	file_bank_kyc_v1_kyc_proto_rawDescOnce sync.Once
@@ -707,7 +754,7 @@ func file_bank_kyc_v1_kyc_proto_rawDescGZIP() []byte {
 }
 
 var file_bank_kyc_v1_kyc_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_bank_kyc_v1_kyc_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_bank_kyc_v1_kyc_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_bank_kyc_v1_kyc_proto_goTypes = []any{
 	(KycStatus)(0),                      // 0: bank.kyc.v1.KycStatus
 	(*Application)(nil),                 // 1: bank.kyc.v1.Application
@@ -719,18 +766,19 @@ var file_bank_kyc_v1_kyc_proto_goTypes = []any{
 	(*ApproveApplicationRequest)(nil),   // 7: bank.kyc.v1.ApproveApplicationRequest
 	(*RejectApplicationRequest)(nil),    // 8: bank.kyc.v1.RejectApplicationRequest
 	(*RequestMoreDocumentsRequest)(nil), // 9: bank.kyc.v1.RequestMoreDocumentsRequest
-	(*timestamppb.Timestamp)(nil),       // 10: google.protobuf.Timestamp
-	(*v1.PageRequest)(nil),              // 11: bank.common.v1.PageRequest
-	(*v1.PageResponse)(nil),             // 12: bank.common.v1.PageResponse
+	(*ResubmitApplicationRequest)(nil),  // 10: bank.kyc.v1.ResubmitApplicationRequest
+	(*timestamppb.Timestamp)(nil),       // 11: google.protobuf.Timestamp
+	(*v1.PageRequest)(nil),              // 12: bank.common.v1.PageRequest
+	(*v1.PageResponse)(nil),             // 13: bank.common.v1.PageResponse
 }
 var file_bank_kyc_v1_kyc_proto_depIdxs = []int32{
 	0,  // 0: bank.kyc.v1.Application.status:type_name -> bank.kyc.v1.KycStatus
-	10, // 1: bank.kyc.v1.Application.created_at:type_name -> google.protobuf.Timestamp
-	10, // 2: bank.kyc.v1.Application.updated_at:type_name -> google.protobuf.Timestamp
-	11, // 3: bank.kyc.v1.ListApplicationsRequest.page:type_name -> bank.common.v1.PageRequest
+	11, // 1: bank.kyc.v1.Application.created_at:type_name -> google.protobuf.Timestamp
+	11, // 2: bank.kyc.v1.Application.updated_at:type_name -> google.protobuf.Timestamp
+	12, // 3: bank.kyc.v1.ListApplicationsRequest.page:type_name -> bank.common.v1.PageRequest
 	0,  // 4: bank.kyc.v1.ListApplicationsRequest.status_filter:type_name -> bank.kyc.v1.KycStatus
 	1,  // 5: bank.kyc.v1.ListApplicationsResponse.applications:type_name -> bank.kyc.v1.Application
-	12, // 6: bank.kyc.v1.ListApplicationsResponse.page:type_name -> bank.common.v1.PageResponse
+	13, // 6: bank.kyc.v1.ListApplicationsResponse.page:type_name -> bank.common.v1.PageResponse
 	2,  // 7: bank.kyc.v1.KycService.SubmitApplication:input_type -> bank.kyc.v1.SubmitApplicationRequest
 	3,  // 8: bank.kyc.v1.KycService.GetApplication:input_type -> bank.kyc.v1.GetApplicationRequest
 	4,  // 9: bank.kyc.v1.KycService.ListApplications:input_type -> bank.kyc.v1.ListApplicationsRequest
@@ -738,15 +786,17 @@ var file_bank_kyc_v1_kyc_proto_depIdxs = []int32{
 	7,  // 11: bank.kyc.v1.KycService.ApproveApplication:input_type -> bank.kyc.v1.ApproveApplicationRequest
 	8,  // 12: bank.kyc.v1.KycService.RejectApplication:input_type -> bank.kyc.v1.RejectApplicationRequest
 	9,  // 13: bank.kyc.v1.KycService.RequestMoreDocuments:input_type -> bank.kyc.v1.RequestMoreDocumentsRequest
-	1,  // 14: bank.kyc.v1.KycService.SubmitApplication:output_type -> bank.kyc.v1.Application
-	1,  // 15: bank.kyc.v1.KycService.GetApplication:output_type -> bank.kyc.v1.Application
-	5,  // 16: bank.kyc.v1.KycService.ListApplications:output_type -> bank.kyc.v1.ListApplicationsResponse
-	1,  // 17: bank.kyc.v1.KycService.ClaimApplication:output_type -> bank.kyc.v1.Application
-	1,  // 18: bank.kyc.v1.KycService.ApproveApplication:output_type -> bank.kyc.v1.Application
-	1,  // 19: bank.kyc.v1.KycService.RejectApplication:output_type -> bank.kyc.v1.Application
-	1,  // 20: bank.kyc.v1.KycService.RequestMoreDocuments:output_type -> bank.kyc.v1.Application
-	14, // [14:21] is the sub-list for method output_type
-	7,  // [7:14] is the sub-list for method input_type
+	10, // 14: bank.kyc.v1.KycService.ResubmitApplication:input_type -> bank.kyc.v1.ResubmitApplicationRequest
+	1,  // 15: bank.kyc.v1.KycService.SubmitApplication:output_type -> bank.kyc.v1.Application
+	1,  // 16: bank.kyc.v1.KycService.GetApplication:output_type -> bank.kyc.v1.Application
+	5,  // 17: bank.kyc.v1.KycService.ListApplications:output_type -> bank.kyc.v1.ListApplicationsResponse
+	1,  // 18: bank.kyc.v1.KycService.ClaimApplication:output_type -> bank.kyc.v1.Application
+	1,  // 19: bank.kyc.v1.KycService.ApproveApplication:output_type -> bank.kyc.v1.Application
+	1,  // 20: bank.kyc.v1.KycService.RejectApplication:output_type -> bank.kyc.v1.Application
+	1,  // 21: bank.kyc.v1.KycService.RequestMoreDocuments:output_type -> bank.kyc.v1.Application
+	1,  // 22: bank.kyc.v1.KycService.ResubmitApplication:output_type -> bank.kyc.v1.Application
+	15, // [15:23] is the sub-list for method output_type
+	7,  // [7:15] is the sub-list for method input_type
 	7,  // [7:7] is the sub-list for extension type_name
 	7,  // [7:7] is the sub-list for extension extendee
 	0,  // [0:7] is the sub-list for field type_name
@@ -763,7 +813,7 @@ func file_bank_kyc_v1_kyc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bank_kyc_v1_kyc_proto_rawDesc), len(file_bank_kyc_v1_kyc_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

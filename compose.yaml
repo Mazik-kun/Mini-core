@@ -17,7 +17,23 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-
+  minio:
+    image: pgsty/silo:latest
+    container_name: mini-core-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"   # S3 API (сюда будет ходить document-service)
+      - "9001:9001"   # Web Console (сюда будем ходить мы)
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
   kafka:
     image: apache/kafka:4.1.1
     container_name: mini-core-kafka
@@ -40,3 +56,4 @@ volumes:
   postgres_data:
   redis_data:
   kafka_data:
+  minio_data:
