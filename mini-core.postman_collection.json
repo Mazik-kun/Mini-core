@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "mini-core",
+    "name": "mini-core-v2",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -14,29 +14,26 @@
   },
   "item": [
     {
-      "name": "00. smoke",
-      "item": [
-        {
-          "name": "Health",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/healthz",
-            "auth": { "type": "noauth" }
-          }
-        }
-      ]
-    },
-    {
-      "name": "01. auth",
+      "name": "01. auth & setup",
       "item": [
         {
           "name": "Register client",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.set('userEmail', 'client_' + Date.now() + '@test.com');"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
             "body": {
               "mode": "raw",
-              "raw": "{\"email\":\"client1@test.com\",\"password\":\"{{clientPassword}}\"}"
+              "raw": "{\"email\":\"{{userEmail}}\",\"password\":\"{{clientPassword}}\"}"
             },
             "url": "{{baseUrl}}/v1/auth/register",
             "auth": { "type": "noauth" }
@@ -49,8 +46,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "const body = pm.response.json();",
-                  "pm.environment.set('token', body.accessToken);",
+                  "pm.environment.set('token', pm.response.json().accessToken);",
                   "pm.test('200 OK', () => pm.response.to.have.status(200));"
                 ]
               }
@@ -61,7 +57,76 @@
             "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
             "body": {
               "mode": "raw",
-              "raw": "{\"email\":\"client1@test.com\",\"password\":\"{{clientPassword}}\"}"
+              "raw": "{\"email\":\"{{userEmail}}\",\"password\":\"{{clientPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/v1/auth/login",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Login admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.environment.set('adminToken', pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"admin@bank.com\",\"password\":\"changeme123\"}" },
+            "url": "{{baseUrl}}/v1/auth/login",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Create officer",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.set('officerEmail', 'officer_' + Date.now() + '@test.com');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{officerEmail}}\",\"password\":\"{{officerPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/v1/auth/officers",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            }
+          }
+        },
+        {
+          "name": "Login officer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.environment.set('officerToken', pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{officerEmail}}\",\"password\":\"{{officerPassword}}\"}"
             },
             "url": "{{baseUrl}}/v1/auth/login",
             "auth": { "type": "noauth" }
@@ -74,7 +139,10 @@
       "item": [
         {
           "name": "Get me",
-          "request": { "method": "GET", "url": "{{baseUrl}}/v1/customers/me" }
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/v1/customers/me"
+          }
         },
         {
           "name": "Update profile",
@@ -112,7 +180,7 @@
             "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
             "body": {
               "mode": "raw",
-              "raw": "{\"documentType\":\"{{passport}}\",\"filename\":\"passport.png\",\"contentType\":\"image/png\",\"sizeBytes\":12345}"
+              "raw": "{\"documentType\":\"{{passport}}\",\"filename\":\"passport.png\",\"contentType\":\"image/png\",\"sizeBytes\":100}"
             },
             "url": "{{baseUrl}}/v1/documents/init-upload"
           }
@@ -122,7 +190,10 @@
           "request": {
             "method": "PUT",
             "header": [{ "key": "Content-Type", "value": "image/png" }],
-            "body": { "mode": "binary", "binary": { "src": "" } },
+            "body": {
+              "mode": "binary",
+              "binary": { "src": "" }
+            },
             "url": "{{uploadUrl1}}",
             "auth": { "type": "noauth" }
           }
@@ -155,7 +226,7 @@
             "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
             "body": {
               "mode": "raw",
-              "raw": "{\"documentType\":\"{{selfie}}\",\"filename\":\"selfie.png\",\"contentType\":\"image/png\",\"sizeBytes\":12345}"
+              "raw": "{\"documentType\":\"{{selfie}}\",\"filename\":\"selfie.png\",\"contentType\":\"image/png\",\"sizeBytes\":100}"
             },
             "url": "{{baseUrl}}/v1/documents/init-upload"
           }
@@ -165,7 +236,10 @@
           "request": {
             "method": "PUT",
             "header": [{ "key": "Content-Type", "value": "image/png" }],
-            "body": { "mode": "binary", "binary": { "src": "" } },
+            "body": {
+              "mode": "binary",
+              "binary": { "src": "" }
+            },
             "url": "{{uploadUrl2}}",
             "auth": { "type": "noauth" }
           }
@@ -192,7 +266,7 @@
               "script": {
                 "exec": [
                   "pm.environment.set('appId', pm.response.json().applicationId);",
-                  "pm.test('SUBMITTED', () => pm.expect(pm.response.json().status).to.eql('KYC_STATUS_SUBMITTED'));"
+                  "pm.test('AUTO_CHECKS', () => pm.expect(pm.response.json().status).to.eql('KYC_STATUS_AUTO_CHECKS'));"
                 ]
               }
             }
@@ -200,7 +274,10 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
-            "body": { "mode": "raw", "raw": "{\"documentIds\":[\"{{docId1}}\",\"{{docId2}}\"]}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"documentIds\":[\"{{docId1}}\",\"{{docId2}}\"]}"
+            },
             "url": "{{baseUrl}}/v1/kyc/applications"
           }
         }
@@ -210,68 +287,16 @@
       "name": "05. kyc (officer)",
       "item": [
         {
-          "name": "Login admin",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": ["pm.environment.set('adminToken', pm.response.json().accessToken);"]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\"email\":\"admin@bank.com\",\"password\":\"changeme123\"}"
-            },
-            "url": "{{baseUrl}}/v1/auth/login",
-            "auth": { "type": "noauth" }
-          }
-        },
-        {
-          "name": "Create officer",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\"email\":\"officer1@bank.com\",\"password\":\"{{officerPassword}}\"}"
-            },
-            "url": "{{baseUrl}}/v1/auth/officers",
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}" }] }
-          }
-        },
-        {
-          "name": "Login officer",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": ["pm.environment.set('officerToken', pm.response.json().accessToken);"]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\"email\":\"officer1@bank.com\",\"password\":\"{{officerPassword}}\"}"
-            },
-            "url": "{{baseUrl}}/v1/auth/login",
-            "auth": { "type": "noauth" }
-          }
-        },
-        {
           "name": "Claim application",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
             "body": { "mode": "raw", "raw": "{}" },
             "url": "{{baseUrl}}/v1/kyc/applications/{{appId}}/claim",
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{officerToken}}" }] }
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{officerToken}}", "type": "string" }]
+            }
           }
         },
         {
@@ -281,7 +306,10 @@
             "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
             "body": { "mode": "raw", "raw": "{}" },
             "url": "{{baseUrl}}/v1/kyc/applications/{{appId}}/approve",
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{officerToken}}" }] }
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{officerToken}}", "type": "string" }]
+            }
           }
         }
       ]
@@ -301,7 +329,10 @@
               }
             }
           ],
-          "request": { "method": "GET", "url": "{{baseUrl}}/v1/customers/me" }
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/v1/customers/me"
+          }
         }
       ]
     }
