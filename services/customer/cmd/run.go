@@ -113,6 +113,20 @@ func run(log *slog.Logger) error {
 		log,
 	)
 
+	applyKycDecision := app.NewApplyKycDecisionUseCase(repo)
+	kycGroupID := cfg.KafkaGroupID + "-kyc"
+	kycTopic := "kyc.events"
+	
+	kycConsumer := customerkafka.NewKycConsumer(
+		cfg.KafkaBrokers,
+		kycGroupID,
+		kycTopic,
+		dedupeStore,
+		applyKycDecision,
+		log,
+	)
+	
+	go runKafkaConsumer(ctx, log, kycConsumer, kycTopic, kycGroupID)
 	go runKafkaConsumer(ctx, log, customerConsumer, cfg.KafkaAuthEventsTopic, cfg.KafkaGroupID)
 	go serveGRPC(log, grpcSrv, listener, cfg.GRPCAddr)
 
@@ -123,10 +137,14 @@ func run(log *slog.Logger) error {
 	return nil
 }
 
+type KafkaRunnable interface {
+	Run(ctx context.Context) error
+}
+
 func runKafkaConsumer(
 	ctx context.Context,
 	log *slog.Logger,
-	consumer *customerkafka.Consumer,
+	consumer KafkaRunnable, 
 	topic string,
 	groupID string,
 ) {

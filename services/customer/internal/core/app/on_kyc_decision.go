@@ -8,7 +8,6 @@ import (
 	"github.com/Mazik-kun/mini-core/services/customer/internal/core/domain"
 )
 
-// ApplyKycDecisionUseCase применяет вердикт KYC к статусу клиента.
 type ApplyKycDecisionUseCase struct {
 	repo domain.CustomerRepository
 }
@@ -38,8 +37,6 @@ func (uc *ApplyKycDecisionUseCase) Apply(ctx context.Context, in ApplyKycDecisio
 	return uc.transition(ctx, customer, domain.StatusRejected)
 }
 
-// transition идемпотентно меняет статус. Повторный вызов с уже достигнутым
-// статусом — не ошибка (Kafka доставляет at-least-once).
 func (uc *ApplyKycDecisionUseCase) transition(ctx context.Context, customer domain.Customer, target domain.Status) error {
 	if customer.Status == target {
 		return nil
@@ -49,3 +46,17 @@ func (uc *ApplyKycDecisionUseCase) transition(ctx context.Context, customer doma
 	}
 	return uc.repo.UpdateStatus(ctx, customer.ID, target)
 }
+
+
+func (uc *ApplyKycDecisionUseCase) MarkOnKYC(ctx context.Context, customerID uuid.UUID) error {
+	if customerID == uuid.Nil {
+		return domain.ErrInvalidCustomerID
+	}
+	customer, err := uc.repo.GetByID(ctx, customerID)
+	if err != nil {
+		return err
+	}
+	
+	return uc.transition(ctx, customer, domain.StatusOnKYC)
+}
+

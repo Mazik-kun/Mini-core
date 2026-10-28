@@ -13,15 +13,12 @@ import (
 
 const UserRegisteredEventType = "user_registered"
 
-// UserRegisteredPayload — payload события auth.user_registered.
-// Формат должен совпадать с auth/app/register.go:userRegisteredPayload.
 type UserRegisteredPayload struct {
 	UserID uuid.UUID `json:"user_id"`
 	Email  string    `json:"email"`
 	Role   string    `json:"role"`
 }
 
-// Consumer читает auth.events и создаёт профиль по событию user_registered.
 type Consumer struct {
 	brokers        []string
 	groupID        string
@@ -49,7 +46,6 @@ func NewConsumer(
 	}
 }
 
-// Run блокируется, пока не отменят ctx. Retry и DLQ делает pkg/kafka.Subscribe.
 func (c *Consumer) Run(ctx context.Context) error {
 	subscriber := kafkautil.NewConsumer(c.brokers)
 	return subscriber.Subscribe(ctx, c.topic, c.groupID, c.handleEnvelope)
@@ -66,7 +62,7 @@ func (c *Consumer) handleEnvelope(ctx context.Context, envelope kafkautil.Envelo
 	}
 
 	if payload.Role != roles.RoleClient {
-		return nil // офицеров и админов профиль не создаём
+		return nil
 	}
 
 	alreadyProcessed, err := c.dedupeStore.MarkProcessed(ctx, envelope.EventID)
