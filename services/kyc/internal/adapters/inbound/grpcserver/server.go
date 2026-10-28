@@ -78,7 +78,7 @@ func mapError(err error) error {
 	case err == domain.ErrInvalidStatusTransition, err == domain.ErrActiveApplicationExists, err == domain.ErrProfileNotFilled, err == domain.ErrDocumentsMissing:
 		return status.Error(codes.FailedPrecondition, err.Error())
 	default:
-		return status.Error(codes.Internal, "internal error")
+		return status.Error(codes.Internal, err.Error())
 	}
 }
 

@@ -27,6 +27,6 @@ func mapError(err error) error {
 		errors.Is(err, domain.ErrInvalidPageToken):
 		return status.Error(codes.InvalidArgument, err.Error())
 	default:
-		return status.Error(codes.Internal, "internal error")
+		return status.Error(codes.Internal, err.Error())
 	}
 }

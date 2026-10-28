@@ -1,0 +1,309 @@
+{
+  "info": {
+    "name": "mini-core",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "jsonCT", "value": "application/json" },
+    { "key": "passport", "value": "DOCUMENT_TYPE_PASSPORT" },
+    { "key": "selfie", "value": "DOCUMENT_TYPE_SELFIE" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "00. smoke",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/healthz",
+            "auth": { "type": "noauth" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01. auth",
+      "item": [
+        {
+          "name": "Register client",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"client1@test.com\",\"password\":\"{{clientPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/v1/auth/register",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Login client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.environment.set('token', body.accessToken);",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"client1@test.com\",\"password\":\"{{clientPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/v1/auth/login",
+            "auth": { "type": "noauth" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. customer",
+      "item": [
+        {
+          "name": "Get me",
+          "request": { "method": "GET", "url": "{{baseUrl}}/v1/customers/me" }
+        },
+        {
+          "name": "Update profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"fullName\":\"Ivan Ivanov\",\"dateOfBirth\":\"1995-05-15T00:00:00Z\",\"address\":\"Tbilisi\",\"phone\":\"+995555000000\",\"citizenship\":\"GE\"}"
+            },
+            "url": "{{baseUrl}}/v1/customers/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. documents",
+      "item": [
+        {
+          "name": "Init upload passport",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.environment.set('docId1', body.documentId);",
+                  "pm.environment.set('uploadUrl1', body.uploadUrl);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"documentType\":\"{{passport}}\",\"filename\":\"passport.png\",\"contentType\":\"image/png\",\"sizeBytes\":12345}"
+            },
+            "url": "{{baseUrl}}/v1/documents/init-upload"
+          }
+        },
+        {
+          "name": "PUT to minio (passport)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "image/png" }],
+            "body": { "mode": "binary", "binary": { "src": "" } },
+            "url": "{{uploadUrl1}}",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Confirm passport",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": { "mode": "raw", "raw": "{\"documentId\":\"{{docId1}}\"}" },
+            "url": "{{baseUrl}}/v1/documents/confirm-upload"
+          }
+        },
+        {
+          "name": "Init upload selfie",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.environment.set('docId2', body.documentId);",
+                  "pm.environment.set('uploadUrl2', body.uploadUrl);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"documentType\":\"{{selfie}}\",\"filename\":\"selfie.png\",\"contentType\":\"image/png\",\"sizeBytes\":12345}"
+            },
+            "url": "{{baseUrl}}/v1/documents/init-upload"
+          }
+        },
+        {
+          "name": "PUT to minio (selfie)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "image/png" }],
+            "body": { "mode": "binary", "binary": { "src": "" } },
+            "url": "{{uploadUrl2}}",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Confirm selfie",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": { "mode": "raw", "raw": "{\"documentId\":\"{{docId2}}\"}" },
+            "url": "{{baseUrl}}/v1/documents/confirm-upload"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. kyc (client)",
+      "item": [
+        {
+          "name": "Submit application",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.environment.set('appId', pm.response.json().applicationId);",
+                  "pm.test('SUBMITTED', () => pm.expect(pm.response.json().status).to.eql('KYC_STATUS_SUBMITTED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": { "mode": "raw", "raw": "{\"documentIds\":[\"{{docId1}}\",\"{{docId2}}\"]}" },
+            "url": "{{baseUrl}}/v1/kyc/applications"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. kyc (officer)",
+      "item": [
+        {
+          "name": "Login admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.environment.set('adminToken', pm.response.json().accessToken);"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"admin@bank.com\",\"password\":\"changeme123\"}"
+            },
+            "url": "{{baseUrl}}/v1/auth/login",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Create officer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"officer1@bank.com\",\"password\":\"{{officerPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/v1/auth/officers",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}" }] }
+          }
+        },
+        {
+          "name": "Login officer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.environment.set('officerToken', pm.response.json().accessToken);"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"officer1@bank.com\",\"password\":\"{{officerPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/v1/auth/login",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Claim application",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/v1/kyc/applications/{{appId}}/claim",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{officerToken}}" }] }
+          }
+        },
+        {
+          "name": "Approve application",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonCT}}" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/v1/kyc/applications/{{appId}}/approve",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{officerToken}}" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. verification",
+      "item": [
+        {
+          "name": "Get me (ACTIVE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('ACTIVE', () => pm.expect(pm.response.json().status).to.eql('CUSTOMER_STATUS_ACTIVE'));"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{baseUrl}}/v1/customers/me" }
+        }
+      ]
+    }
+  ]
+}

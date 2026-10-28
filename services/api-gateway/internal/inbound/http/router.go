@@ -28,6 +28,9 @@ type Deps struct {
 	JWTIssuer   string
 	CORSOrigins []string
 	TrustXFF    bool
+
+	Document *handlers.Document
+	KYC      *handlers.KYC
 }
 
 
@@ -47,6 +50,13 @@ func NewRouter(d Deps) http.Handler {
 	inner.HandleFunc("GET /v1/customers", d.Customer.List)
 	inner.HandleFunc("GET /v1/customers/{customer_id}", d.Customer.GetByID) 
 
+	inner.HandleFunc("POST /v1/documents/init-upload", d.Document.InitUpload)
+	inner.HandleFunc("POST /v1/documents/confirm-upload", d.Document.ConfirmUpload)
+	inner.HandleFunc("GET /v1/documents/{id}/url", d.Document.GetDownloadURL)
+
+	inner.HandleFunc("POST /v1/kyc/applications", d.KYC.Submit)
+	inner.HandleFunc("POST /v1/kyc/applications/{id}/claim", d.KYC.Claim)
+	inner.HandleFunc("POST /v1/kyc/applications/{id}/approve", d.KYC.Approve)
 
 
 	chain := middleware.Chain(

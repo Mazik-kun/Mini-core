@@ -53,7 +53,16 @@ func (uc *ConfirmUploadUseCase) ConfirmUpload(ctx context.Context, in ConfirmUpl
 		return domain.Document{}, uc.reject(ctx, doc, "", info.SizeBytes, domain.ErrFileTooLarge)
 	}
 
-	head, err := uc.storage.ReadHead(ctx, doc.ObjectKey, headSize)
+	readSize := headSize
+	if info.SizeBytes < int64(headSize) {
+		readSize = int(info.SizeBytes)
+	}
+
+	head, err := uc.storage.ReadHead(ctx, doc.ObjectKey, readSize)
+	if err != nil {
+		return domain.Document{}, fmt.Errorf("read object head: %w", err)
+	}
+
 	if err != nil {
 		return domain.Document{}, fmt.Errorf("read object head: %w", err)
 	}

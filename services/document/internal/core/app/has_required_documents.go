@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/google/uuid"
 
@@ -42,10 +43,12 @@ func (uc *HasRequiredDocumentsUseCase) HasRequiredDocuments(ctx context.Context,
 		}
 	}
 
+	slog.Info("HasRequiredDocuments check", "customer_id", in.CustomerID.String(), "required", required)
 	confirmed, err := uc.repo.ConfirmedTypes(ctx, in.CustomerID)
 	if err != nil {
 		return HasRequiredDocumentsOutput{}, err
 	}
+	slog.Info("HasRequiredDocuments result", "confirmed", confirmed)
 	missing := domain.Missing(required, confirmed)
 	return HasRequiredDocumentsOutput{HasAll: len(missing) == 0, Missing: missing}, nil
 }

@@ -24,6 +24,8 @@ import (
 	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/grpcconn"
 	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/jwks"
 	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/ratelimit"
+	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/documentgrpc"
+	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/kycgrpc"
 )
 
 // run — DI + жизненный цикл. Остановка: ctx отменён → HTTP Shutdown → закрытие gRPC conns
@@ -60,10 +62,25 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+		
+	documentOpts := dial
+	documentOpts.Addr = cfg.DocumentGRPCAddr
+	documentClient, err := documentgrpc.New(documentOpts)
+	if err != nil {
+		return err
+	}
+	kycOpts := dial
+	kycOpts.Addr = cfg.KYCGRPCAddr
+	kycClient, err := kycgrpc.New(kycOpts)
+	if err != nil {
+		return err
+	}
 
 	defer func() {
 		for name, closeFn := range map[string]func() error{
 			"auth grpc": authClient.Close, "customer grpc": customerClient.Close, "redis": rdb.Close,
+			"document grpc": documentClient.Close,
+			"kyc grpc":      kycClient.Close,
 		} {
 			if err := closeFn(); err != nil {
 				log.Error("close failed", "resource", name, "error", err)
@@ -108,6 +125,8 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 		Me:          handlers.NewMe(customerClient, log),
 		Auth:        handlers.NewAuth(authClient),       // <--- ДОБАВЛЕНО
 		Customer:    handlers.NewCustomer(customerClient), // <--- ДОБАВЛЕНО
+		Document: handlers.NewDocument(documentClient),
+		KYC:      handlers.NewKYC(kycClient),
 		Health:      health,
 		JWKS:        jwksCache,
 		UserLimiter: userLimiter,

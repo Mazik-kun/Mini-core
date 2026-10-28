@@ -12,6 +12,8 @@ import (
 
 	authv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/auth/v1"
 	customerv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/customer/v1"
+	documentv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/document/v1"
+	kycv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/kyc/v1"
 )
 
 var (
@@ -44,4 +46,18 @@ type CustomerClient interface {
 	UpdateProfile(ctx context.Context, in *customerv1.UpdateProfileRequest, opts ...grpc.CallOption) (*customerv1.Customer, error)
 	GetCustomerStatus(ctx context.Context, in *customerv1.GetCustomerStatusRequest, opts ...grpc.CallOption) (*customerv1.GetCustomerStatusResponse, error)
 	ListCustomers(ctx context.Context, in *customerv1.ListCustomersRequest, opts ...grpc.CallOption) (*customerv1.ListCustomersResponse, error)
+}
+
+// DocumentClient — часть documentv1.DocumentServiceClient, нужная ручным хендлерам.
+type DocumentClient interface {
+	InitUpload(ctx context.Context, in *documentv1.InitUploadRequest, opts ...grpc.CallOption) (*documentv1.InitUploadResponse, error)
+	ConfirmUpload(ctx context.Context, in *documentv1.ConfirmUploadRequest, opts ...grpc.CallOption) (*documentv1.Document, error)
+	GetDownloadUrl(ctx context.Context, in *documentv1.GetDownloadUrlRequest, opts ...grpc.CallOption) (*documentv1.GetDownloadUrlResponse, error)
+}
+
+// KYCClient — часть kycv1.KycServiceClient, нужная ручным хендлерам.
+type KYCClient interface {
+	SubmitApplication(ctx context.Context, in *kycv1.SubmitApplicationRequest, opts ...grpc.CallOption) (*kycv1.Application, error)
+	ClaimApplication(ctx context.Context, in *kycv1.ClaimApplicationRequest, opts ...grpc.CallOption) (*kycv1.Application, error)
+	ApproveApplication(ctx context.Context, in *kycv1.ApproveApplicationRequest, opts ...grpc.CallOption) (*kycv1.Application, error)
 }

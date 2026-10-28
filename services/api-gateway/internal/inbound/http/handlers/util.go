@@ -9,6 +9,8 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/inbound/http/apierr"
+	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/reqctx"
+	"github.com/google/uuid"
 )
 
 var (
@@ -44,4 +46,31 @@ func respondProtoJSON(w http.ResponseWriter, r *http.Request, msg proto.Message,
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(b)
+}
+// customerIDFromClaims достаёт customer_id из JWT. Тот же контракт, что и Me.customerID.
+func customerIDFromClaims(w http.ResponseWriter, r *http.Request) (string, bool) {
+	claims, ok := reqctx.Claims(r.Context())
+	if !ok {
+		apierr.WriteStatus(w, r, codes.Unauthenticated, "authentication required")
+		return "", false
+	}
+	if claims.CustomerID == nil {
+		apierr.WriteStatus(w, r, codes.FailedPrecondition, "customer profile not yet linked")
+		return "", false
+	}
+	return claims.CustomerID.String(), true
+}
+
+// reviewerIDFromClaims — user_id офицера для kyc-методов (claim/approve/reject).
+func reviewerIDFromClaims(w http.ResponseWriter, r *http.Request) (string, bool) {
+	claims, ok := reqctx.Claims(r.Context())
+	if !ok {
+		apierr.WriteStatus(w, r, codes.Unauthenticated, "authentication required")
+		return "", false
+	}
+	if claims.Subject == uuid.Nil {
+		apierr.WriteStatus(w, r, codes.FailedPrecondition, "invalid token subject")
+		return "", false
+	}
+	return claims.Subject.String(), true
 }
