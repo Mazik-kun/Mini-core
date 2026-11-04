@@ -3,6 +3,7 @@ go 1.27.1
 use (
 	./contracts
 	./pkg
+	./services/account
 	./services/api-gateway
 	./services/auth
 	./services/customer
