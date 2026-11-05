@@ -17,6 +17,7 @@ import (
 
 	accountv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/account/v1"
 	"github.com/Mazik-kun/mini-core/services/account/internal/adapters/inbound/grpcserver"
+	"github.com/Mazik-kun/mini-core/services/account/internal/adapters/outbound/kafka"
 	"github.com/Mazik-kun/mini-core/services/account/internal/adapters/outbound/postgres"
 	"github.com/Mazik-kun/mini-core/services/account/internal/adapters/outbound/postgres/db"
 	"github.com/Mazik-kun/mini-core/services/account/internal/config"
@@ -67,9 +68,17 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 	healthpb.RegisterHealthServer(grpcServer, healthServer)
 	healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
 
+	kafkaConsumer := kafka.NewConsumer(cfg.KafkaBrokers, cfg.KafkaTopic, cfg.KafkaGroupID, accountRepo, openUC, listUC, log)
+	defer kafkaConsumer.Close()
+
 	// 5. Запуск сервера
 	g, gctx := errgroup.WithContext(ctx)
 
+	g.Go(func()error{
+		log.Info("starting kafka consumer")
+		return kafkaConsumer.Run(gctx)
+	})
+	
 	g.Go(func() error {
 		lis, err := net.Listen("tcp", cfg.GRPCAddr)
 		if err != nil {
