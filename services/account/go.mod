@@ -2,4 +2,24 @@ module github.com/Mazik-kun/mini-core/services/account
 
 go 1.27.1
 
-require github.com/google/uuid v1.6.0
+require (
+	github.com/google/uuid v1.6.0
+	github.com/jackc/pgx/v5 v5.11.0
+	github.com/segmentio/kafka-go v0.4.49
+	golang.org/x/sync v0.24.0
+	google.golang.org/grpc v1.84.0
+	google.golang.org/protobuf v1.36.12
+)
+
+require (
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/klauspost/compress v1.20.1 // indirect
+	github.com/pierrec/lz4/v4 v4.1.21 // indirect
+	github.com/stretchr/testify v1.12.1 // indirect
+	golang.org/x/net v0.61.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261005182115-fad411399dd8 // indirect
+)

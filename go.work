@@ -9,4 +9,5 @@ use (
 	./services/customer
 	./services/document
 	./services/kyc
+	./services/ledger
 )
