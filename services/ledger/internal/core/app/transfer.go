@@ -141,7 +141,7 @@ func(uc *TransferUseCase)Transfer(ctx context.Context, in TransferInput)(domain.
 	}
 
 	if err := tx.Commit(ctx); err != nil{
-		return domain.Transaction{}, fmt.Errorf("commit tx: %w")
+		return domain.Transaction{}, fmt.Errorf("commit tx: %w", err)
 	}
 	transaction.Entries = []domain.Entry{debitEntry, creditEntry}
 	return transaction, nil

@@ -9,14 +9,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type LedgerRepo struct {
 	q *db.Queries 
 }
-func NewLedgerRepo(pool *pgxpool.Pool) *LedgerRepo {
-	return &LedgerRepo{q: db.New(pool)}
+func NewLedgerRepo(q *db.Queries) *LedgerRepo {
+	return &LedgerRepo{q: q}
 }
 
 func (r *LedgerRepo) ListTransactions(ctx context.Context, accountID uuid.UUID, fromTime, toTime pgtype.Timestamptz, limit, offset int32)([]domain.Transaction, error){

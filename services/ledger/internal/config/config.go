@@ -14,6 +14,9 @@ type Config struct {
 	AccountGRPCAddr string
 	LogLevel    string
 	DatabaseURL string
+
+	KafkaBrokers []string
+	KafkaTopic string
 }
 
 func Load() (*Config, error) {
@@ -26,6 +29,8 @@ func Load() (*Config, error) {
 		AccountGRPCAddr: getEnv("LEDGER_ACCOUNT_GRPC_ADDR", ":50056"),
 		LogLevel:    getEnv("LEDGER_LOG_LEVEL", "info"),
 		DatabaseURL: os.Getenv("LEDGER_DATABASE_URL"),
+		KafkaBrokers: splitCSV(getEnv("LEDGER_KAFKA_BROKERS", "localhost:9092")),
+		KafkaTopic: getEnv("LEDGER_KAFKA_TOPIC", "ledfer.events"),
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -43,4 +48,15 @@ func getEnv(name, def string) string {
 		return v
 	}
 	return def
+}
+
+func splitCSV(raw string) []string{
+	var out []string
+
+	for _, p := range strings.Split(raw, ","){
+		if p = strings.TrimSpace(p); p != ""{
+			out = append(out, p)
+		}
+	}
+	return out
 }

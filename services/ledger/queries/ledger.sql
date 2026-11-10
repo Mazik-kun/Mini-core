@@ -40,3 +40,12 @@ JOIN entries e ON t.id = e.transaction_id
 WHERE e.account_id = $1 AND (sqlc.narg('from_time')::timestampz IS NULL OR t.created_at >= sqlc.narg('from_time')) AND (sqlc.narg('to_time')::timestampz IS NULL OR t.created_at >= sqlc.narg('to_time'))
 ORDER BY t.created_at DESC
 LIMIT $2 OFFSET $3;
+
+-- name: GetPendingOutboxEvents :many
+SELECT * FROM outbox
+WHERE status = 'PENDING'
+ORDER BY created_at ASC
+LIMIT 10;
+
+-- name: MarkOutboxEventAsSent :exec
+UPDATE outbox SET status = 'SENT' WHERE id = $1;

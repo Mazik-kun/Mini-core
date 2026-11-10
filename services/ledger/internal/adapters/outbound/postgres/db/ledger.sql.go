@@ -189,6 +189,39 @@ func (q *Queries) GetEntriesByTransactionID(ctx context.Context, transactionID u
 	return items, nil
 }
 
+const getPendingOutboxEvents = `-- name: GetPendingOutboxEvents :many
+SELECT id, event_type, payload, status, created_at FROM outbox
+WHERE status = 'PENDING'
+ORDER BY created_at ASC
+LIMIT 10
+`
+
+func (q *Queries) GetPendingOutboxEvents(ctx context.Context) ([]Outbox, error) {
+	rows, err := q.db.Query(ctx, getPendingOutboxEvents)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Outbox{}
+	for rows.Next() {
+		var i Outbox
+		if err := rows.Scan(
+			&i.ID,
+			&i.EventType,
+			&i.Payload,
+			&i.Status,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTransactionByAccountID = `-- name: GetTransactionByAccountID :many
 SElECT DISTINCT t.id, t.status, t.type, t.idempotency_key, t.created_at FROM transactions t
 JOIN entries e ON t.id = e.transaction_id
@@ -252,6 +285,15 @@ func (q *Queries) GetTransactionByIdempotencyKey(ctx context.Context, idempotenc
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const markOutboxEventAsSent = `-- name: MarkOutboxEventAsSent :exec
+UPDATE outbox SET status = 'SENT' WHERE id = $1
+`
+
+func (q *Queries) MarkOutboxEventAsSent(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, markOutboxEventAsSent, id)
+	return err
 }
 
 const upsertBalance = `-- name: UpsertBalance :exec

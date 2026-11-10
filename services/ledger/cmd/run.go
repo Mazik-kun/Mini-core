@@ -18,19 +18,25 @@ import (
 	ledgerv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/ledger/v1"
 	grpcserver "github.com/Mazik-kun/mini-core/services/ledger/internal/adapters/inbound"
 	accountgrpc "github.com/Mazik-kun/mini-core/services/ledger/internal/adapters/outbound/accountgrc"
+	"github.com/Mazik-kun/mini-core/services/ledger/internal/adapters/outbound/kafka"
+	kafkaPkg "github.com/Mazik-kun/mini-core/pkg/kafka"
 	"github.com/Mazik-kun/mini-core/services/ledger/internal/adapters/outbound/postgres"
+	"github.com/Mazik-kun/mini-core/services/ledger/internal/adapters/outbound/postgres/db"
 	"github.com/Mazik-kun/mini-core/services/ledger/internal/config"
 	"github.com/Mazik-kun/mini-core/services/ledger/internal/core/app"
 )
 
 func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
-		pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	// подключение к бд
+	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("db connect: %w", err)
 	}
 	defer pool.Close()
 
-	ledgerRepo := postgres.NewLedgerRepo(pool)
+	
+	queries := db.New(pool)
+	ledgerRepo := postgres.NewLedgerRepo(queries)
 
 	accountClient, err := accountgrpc.New(cfg.AccountGRPCAddr)
 
@@ -42,7 +48,8 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 	depositUC := app.NewDepositUseCase(pool, ledgerRepo, accountClient)
 	balanceUC := app.NewGetBalanceUseCase(ledgerRepo)
 	listUC := app.NewListTransactionsUseCase(ledgerRepo)
-
+	
+	outboxWorker := kafka.NewOutboxWorker(queries, cfg.KafkaBrokers, cfg.KafkaTopic, log)
 	// 4. gRPC Сервер
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
@@ -64,9 +71,14 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 	healthServer := health.NewServer()
 	healthpb.RegisterHealthServer(grpcServer, healthServer)
 	healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
-
 	// 5. Запуск
 	g, gctx := errgroup.WithContext(ctx)
+	if err := kafkaPkg.EnsureTopicExists(cfg.KafkaBrokers, cfg.KafkaTopic, 1, log); err != nil{
+		return fmt.Errorf("ensure kafka topic: %w", err)
+	}
+	g.Go(func() error{
+		return outboxWorker.Run(gctx)
+	})
 
 	g.Go(func() error {
 		lis, err := net.Listen("tcp", cfg.GRPCAddr)
