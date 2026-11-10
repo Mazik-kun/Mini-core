@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -20,14 +21,16 @@ type Server struct {
 	transferUC   *app.TransferUseCase
 	depositUC    *app.DepositUseCase
 	balanceUC    *app.GetBalanceUseCase
+	listUC *app.ListTransactionsUseCase
 	log          *slog.Logger
 }
 
-func NewServer(transferUC *app.TransferUseCase, depositUC *app.DepositUseCase, balanceUC *app.GetBalanceUseCase, log *slog.Logger) *Server {
+func NewServer(transferUC *app.TransferUseCase, depositUC *app.DepositUseCase, balanceUC *app.GetBalanceUseCase, listUC *app.ListTransactionsUseCase, log *slog.Logger) *Server {
 	return &Server{
 		transferUC: transferUC,
 		depositUC:  depositUC,
 		balanceUC:  balanceUC,
+		listUC: listUC,
 		log:        log,
 	}
 }
@@ -93,10 +96,42 @@ func (s *Server) GetBalance(ctx context.Context, req *ledgerv1.GetBalanceRequest
 func (s *Server) GetTransaction(ctx context.Context, req *ledgerv1.GetTransactionRequest) (*ledgerv1.Transaction, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented yet")
 }
-func (s *Server) ListTransactions(ctx context.Context, req *ledgerv1.ListTransactionsRequest) (*ledgerv1.ListTransactionsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented yet")
-}
+func (s *Server) ListTransactions(ctx context.Context, req *ledgerv1.ListTransactionsRequest) (*ledgerv1.ListTransactionsResponse, error){
+	accID, err := uuid.Parse(req.AccountId)
+	if err != nil{
+		return nil, status.Error(codes.InvalidArgument, "invalid account_id")
+	}
 
+	var fromTime, toTime pgtype.Timestamptz
+	if req.From != nil {
+		fromTime = pgtype.Timestamptz{Time: req.From.AsTime(), Valid: true}
+	}
+	if req.To != nil{
+		toTime = pgtype.Timestamptz{Time: req.To.AsTime(), Valid: true}
+	}
+
+	limit := int32(20)
+	offset := int32(0)
+	if req.Page != nil && req.Page.PageSize > 0 {
+		limit = req.Page.PageSize
+	}
+
+	txs, err := s.listUC.ListTransactions(ctx, accID, fromTime, toTime, limit, offset)
+
+	if err != nil{
+		return nil, toGRPCError(err)
+	}
+
+	pbTxs := make([]*ledgerv1.Transaction, 0, len(txs))
+
+	for _, tx := range txs{
+		pbTxs = append(pbTxs, toProtoTransaction(tx))
+	}
+
+	return &ledgerv1.ListTransactionsResponse{
+		Transactions: pbTxs,
+	}, nil
+}
 func toGRPCError(err error) error {
 	switch {
 	case errors.Is(err, domain.ErrInsufficientFunds):

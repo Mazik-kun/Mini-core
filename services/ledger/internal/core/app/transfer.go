@@ -47,6 +47,31 @@ func(uc *TransferUseCase)Transfer(ctx context.Context, in TransferInput)(domain.
 	if !errors.Is(err, pgx.ErrNoRows){
 		return domain.Transaction{}, fmt.Errorf("check idempotency: %w", err)
 	}
+	// 1. Проверяем счет отправителя
+	currencyFrom, statusFrom, err := uc.accountClient.GetAccount(ctx, in.FromAccountID)
+	if err != nil {
+		return domain.Transaction{}, fmt.Errorf("get from account: %w", err)
+	}
+	if statusFrom != "ACCOUNT_STATUS_ACTIVE" {
+		return domain.Transaction{}, fmt.Errorf("from account is not active")
+	}
+
+	// 2. Проверяем счет получателя
+	currencyTo, statusTo, err := uc.accountClient.GetAccount(ctx, in.ToAccountID)
+	if err != nil {
+		return domain.Transaction{}, fmt.Errorf("get to account: %w", err)
+	}
+	if statusTo != "ACCOUNT_STATUS_ACTIVE" {
+		return domain.Transaction{}, fmt.Errorf("to account is not active")
+	}
+
+	// 3. Проверяем, что валюты совпадают
+	if currencyFrom != currencyTo {
+		return domain.Transaction{}, domain.ErrCurrencyMismatch
+	}
+	if currencyFrom != in.Currency {
+		return domain.Transaction{}, fmt.Errorf("currency mismatch with request")
+	}
 
 	tx, err := uc.db.Begin(ctx)
 	if err != nil{

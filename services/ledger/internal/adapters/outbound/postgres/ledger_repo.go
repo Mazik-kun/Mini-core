@@ -8,6 +8,7 @@ import (
 	"github.com/Mazik-kun/mini-core/services/ledger/internal/core/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -16,6 +17,56 @@ type LedgerRepo struct {
 }
 func NewLedgerRepo(pool *pgxpool.Pool) *LedgerRepo {
 	return &LedgerRepo{q: db.New(pool)}
+}
+
+func (r *LedgerRepo) ListTransactions(ctx context.Context, accountID uuid.UUID, fromTime, toTime pgtype.Timestamptz, limit, offset int32)([]domain.Transaction, error){
+	
+	rows, err := r.q.GetTransactionByAccountID(ctx, db.GetTransactionByAccountIDParams{
+		AccountID: accountID,
+		FromTime: fromTime,
+		ToTime: toTime,
+		Limit: limit,
+		Offset: offset,
+	})
+	if err != nil{
+		return nil, fmt.Errorf("query transaction: %w", err)
+	}
+	result := make([]domain.Transaction, 0, len(rows))
+
+	for _, row := range rows{
+
+		entriesRows, err := r.q.GetEntriesByTransactionID(ctx, row.ID)
+		if err != nil{
+			return nil, fmt.Errorf("get entries for tx %s: %w", row.ID, err)
+		}
+
+		var fromAcc, toAcc uuid.UUID
+		var amount int64
+		var currency string
+	
+		for _, e := range entriesRows {
+			if e.Direction == "DEBIT"{
+			fromAcc = e.AccountID
+			amount = e.Amount
+			currency = e.Currency
+		} else if e.Direction == "CREDIT"{
+			toAcc = e.AccountID
+		}
+	}
+		result = append(result, domain.Transaction{
+			ID: row.ID,
+			Status: domain.Status(row.Status),
+			Type: domain.TransactionType(row.Type),
+			IdempotencyKey: row.IdempotencyKey,
+			CreatedAt: row.CreatedAt.Time,
+			FromAccountID: fromAcc,
+			ToAccountID: toAcc,
+			Amount: amount,
+			Currency: currency,
+			})
+	}
+
+	return result, nil
 }
 
 func (r *LedgerRepo) GetTransactionByIdempotencyKey(ctx context.Context, key string) (domain.Transaction, error) {

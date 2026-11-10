@@ -17,6 +17,7 @@ type Querier interface {
 	GetBalance(ctx context.Context, accountID uuid.UUID) (Balance, error)
 	GetBalancesForUpdate(ctx context.Context, arg GetBalancesForUpdateParams) ([]Balance, error)
 	GetEntriesByTransactionID(ctx context.Context, transactionID uuid.UUID) ([]Entry, error)
+	GetTransactionByAccountID(ctx context.Context, arg GetTransactionByAccountIDParams) ([]Transaction, error)
 	GetTransactionByIdempotencyKey(ctx context.Context, idempotencyKey string) (Transaction, error)
 	UpsertBalance(ctx context.Context, arg UpsertBalanceParams) error
 }

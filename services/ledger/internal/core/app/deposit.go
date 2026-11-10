@@ -20,11 +20,11 @@ var SystemCashAccountID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 type DepositUseCase struct {
 	db         *pgxpool.Pool
 	repo       domain.LedgerRepository
-	accountCli domain.AccountClient
+	accountClient domain.AccountClient
 }
 
-func NewDepositUseCase(db *pgxpool.Pool, repo domain.LedgerRepository, accountCli domain.AccountClient) *DepositUseCase {
-	return &DepositUseCase{db: db, repo: repo, accountCli: accountCli}
+func NewDepositUseCase(db *pgxpool.Pool, repo domain.LedgerRepository, accountClient domain.AccountClient) *DepositUseCase {
+	return &DepositUseCase{db: db, repo: repo, accountClient: accountClient}
 }
 
 type DepositInput struct {
@@ -49,8 +49,8 @@ func (uc *DepositUseCase) Deposit(ctx context.Context, in DepositInput) (domain.
 	}
 
 	// 2. Проверка счета
-	_, status, err := uc.accountCli.GetAccount(ctx, in.AccountID)
-	if err != nil || status != "ACTIVE" {
+	_, status, err := uc.accountClient.GetAccount(ctx, in.AccountID)
+	if err != nil || status != "ACCOUNT_STATUS_ACTIVE" {
 		return domain.Transaction{}, fmt.Errorf("account is not active")
 	}
 

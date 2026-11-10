@@ -11,6 +11,7 @@ import (
 
 type Config struct {
 	GRPCAddr    string
+	AccountGRPCAddr string
 	LogLevel    string
 	DatabaseURL string
 }
@@ -22,6 +23,7 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		GRPCAddr:    getEnv("LEDGER_GRPC_ADDR", ":50057"), // Следующий свободный порт
+		AccountGRPCAddr: getEnv("LEDGER_ACCOUNT_GRPC_ADDR", ":50056"),
 		LogLevel:    getEnv("LEDGER_LOG_LEVEL", "info"),
 		DatabaseURL: os.Getenv("LEDGER_DATABASE_URL"),
 	}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type LedgerRepository interface {
@@ -18,6 +19,8 @@ type LedgerRepository interface {
 
 	CreateOutboxEvent(ctx context.Context, tx pgx.Tx, eventType string, payload []byte) error
 	GetBalance(ctx context.Context, accountID uuid.UUID) (Balance, error)
+
+	ListTransactions(ctx context.Context, accountID uuid.UUID, fromTime, toTime pgtype.Timestamptz, limit, offset int32) ([]Transaction, error)
 }
 
 type AccountClient interface {

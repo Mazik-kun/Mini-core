@@ -17,6 +17,7 @@ import (
 
 	ledgerv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/ledger/v1"
 	grpcserver "github.com/Mazik-kun/mini-core/services/ledger/internal/adapters/inbound"
+	accountgrpc "github.com/Mazik-kun/mini-core/services/ledger/internal/adapters/outbound/accountgrc"
 	"github.com/Mazik-kun/mini-core/services/ledger/internal/adapters/outbound/postgres"
 	"github.com/Mazik-kun/mini-core/services/ledger/internal/config"
 	"github.com/Mazik-kun/mini-core/services/ledger/internal/core/app"
@@ -29,14 +30,18 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 	}
 	defer pool.Close()
 
-	// ВОТ ЭТОЙ СТРОКИ НЕ ХВАТАЛО:
 	ledgerRepo := postgres.NewLedgerRepo(pool)
 
-	accountCli := &app.MockAccountClient{}
+	accountClient, err := accountgrpc.New(cfg.AccountGRPCAddr)
 
-	transferUC := app.NewTransferUseCase(pool, ledgerRepo, accountCli)
-	depositUC := app.NewDepositUseCase(pool, ledgerRepo, accountCli)
+	if err != nil{
+		return fmt.Errorf("account grpc: %w", err)
+	}
+
+	transferUC := app.NewTransferUseCase(pool, ledgerRepo, accountClient)
+	depositUC := app.NewDepositUseCase(pool, ledgerRepo, accountClient)
 	balanceUC := app.NewGetBalanceUseCase(ledgerRepo)
+	listUC := app.NewListTransactionsUseCase(ledgerRepo)
 
 	// 4. gRPC Сервер
 	grpcServer := grpc.NewServer(
@@ -53,7 +58,7 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 		),
 	)
 	
-	ledgerServer := grpcserver.NewServer(transferUC, depositUC, balanceUC, log)
+	ledgerServer := grpcserver.NewServer(transferUC, depositUC, balanceUC, listUC, log)
 	ledgerv1.RegisterLedgerServiceServer(grpcServer, ledgerServer)
 
 	healthServer := health.NewServer()

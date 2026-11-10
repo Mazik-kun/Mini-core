@@ -189,6 +189,54 @@ func (q *Queries) GetEntriesByTransactionID(ctx context.Context, transactionID u
 	return items, nil
 }
 
+const getTransactionByAccountID = `-- name: GetTransactionByAccountID :many
+SElECT DISTINCT t.id, t.status, t.type, t.idempotency_key, t.created_at FROM transactions t
+JOIN entries e ON t.id = e.transaction_id
+WHERE e.account_id = $1 AND ($4::timestampz IS NULL OR t.created_at >= $4) AND ($5::timestampz IS NULL OR t.created_at >= $5)
+ORDER BY t.created_at DESC
+LIMIT $2 OFFSET $3
+`
+
+type GetTransactionByAccountIDParams struct {
+	AccountID uuid.UUID
+	Limit     int32
+	Offset    int32
+	FromTime  interface{}
+	ToTime    interface{}
+}
+
+func (q *Queries) GetTransactionByAccountID(ctx context.Context, arg GetTransactionByAccountIDParams) ([]Transaction, error) {
+	rows, err := q.db.Query(ctx, getTransactionByAccountID,
+		arg.AccountID,
+		arg.Limit,
+		arg.Offset,
+		arg.FromTime,
+		arg.ToTime,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Transaction{}
+	for rows.Next() {
+		var i Transaction
+		if err := rows.Scan(
+			&i.ID,
+			&i.Status,
+			&i.Type,
+			&i.IdempotencyKey,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTransactionByIdempotencyKey = `-- name: GetTransactionByIdempotencyKey :one
 SELECT id, status, type, idempotency_key, created_at FROM transactions WHERE idempotency_key = $1
 `
