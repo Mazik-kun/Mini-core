@@ -10,10 +10,12 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	accountv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/account/v1"
 	authv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/auth/v1"
 	customerv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/customer/v1"
 	documentv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/document/v1"
 	kycv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/kyc/v1"
+	ledgerv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/ledger/v1"
 )
 
 var (
@@ -60,4 +62,16 @@ type KYCClient interface {
 	SubmitApplication(ctx context.Context, in *kycv1.SubmitApplicationRequest, opts ...grpc.CallOption) (*kycv1.Application, error)
 	ClaimApplication(ctx context.Context, in *kycv1.ClaimApplicationRequest, opts ...grpc.CallOption) (*kycv1.Application, error)
 	ApproveApplication(ctx context.Context, in *kycv1.ApproveApplicationRequest, opts ...grpc.CallOption) (*kycv1.Application, error)
+}
+
+type AccountClient interface {
+	GetAccount(ctx context.Context, in *accountv1.GetAccountRequest, opts ...grpc.CallOption) (*accountv1.Account, error)
+	ListAccounts(ctx context.Context, in *accountv1.ListAccountsRequest, opts ...grpc.CallOption) (*accountv1.ListAccountsResponse, error)
+	GetBalance(ctx context.Context, in *accountv1.GetBalanceRequest, opts ...grpc.CallOption) (*accountv1.GetBalanceResponse, error)
+}
+
+type LedgerClient interface {
+	Transfer(ctx context.Context, in *ledgerv1.TransferRequest, opts ...grpc.CallOption) (*ledgerv1.Transaction, error)
+	GetBalance(ctx context.Context, in *ledgerv1.GetBalanceRequest, opts ...grpc.CallOption) (*ledgerv1.GetBalanceResponse, error)
+	Deposit(ctx context.Context, in *ledgerv1.DepositRequest, opts ...grpc.CallOption) (*ledgerv1.Transaction, error)
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -8,7 +9,9 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
+	accountv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/account/v1"
 	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/inbound/http/apierr"
+	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/port"
 	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/reqctx"
 	"github.com/google/uuid"
 )
@@ -73,4 +76,15 @@ func reviewerIDFromClaims(w http.ResponseWriter, r *http.Request) (string, bool)
 		return "", false
 	}
 	return claims.Subject.String(), true
+}
+
+func checkAccountOwnership(ctx context.Context, client port.AccountClient, customerID, accountID string) (bool, error){
+	acc, err := client.GetAccount(ctx, &accountv1.GetAccountRequest{
+		AccountId: accountID,
+	})
+	if err != nil{
+		return false, err
+	}
+
+	return acc.CustomerId == customerID, nil
 }

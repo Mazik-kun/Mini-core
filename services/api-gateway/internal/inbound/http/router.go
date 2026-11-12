@@ -31,6 +31,10 @@ type Deps struct {
 
 	Document *handlers.Document
 	KYC      *handlers.KYC
+
+	Account *handlers.Account
+
+	Ledger *handlers.Ledger
 }
 
 
@@ -58,6 +62,10 @@ func NewRouter(d Deps) http.Handler {
 	inner.HandleFunc("POST /v1/kyc/applications/{id}/claim", d.KYC.Claim)
 	inner.HandleFunc("POST /v1/kyc/applications/{id}/approve", d.KYC.Approve)
 
+	inner.HandleFunc("GET /v1/accounts", d.Account.ListMyAccounts)
+	inner.HandleFunc("GET /v1/accounts/{id}/balance", d.Account.GetBalance)
+	inner.HandleFunc("POST /v1/transfers", d.Ledger.Transfer)
+	inner.HandleFunc("POST /v1/ledger/deposit", d.Ledger.Deposit)
 
 	chain := middleware.Chain(
 		middleware.Recovery(d.Log),

@@ -19,13 +19,15 @@ import (
 	httpserver "github.com/Mazik-kun/mini-core/services/api-gateway/internal/inbound/http"
 	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/inbound/http/handlers"
 	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/observability"
+	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/accountgrpc"
 	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/authgrpc"
 	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/customergrpc"
+	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/documentgrpc"
 	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/grpcconn"
 	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/jwks"
-	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/ratelimit"
-	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/documentgrpc"
 	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/kycgrpc"
+	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/ledgergrpc"
+	"github.com/Mazik-kun/mini-core/services/api-gateway/internal/outbound/ratelimit"
 )
 
 // run — DI + жизненный цикл. Остановка: ctx отменён → HTTP Shutdown → закрытие gRPC conns
@@ -35,7 +37,6 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("tracing: %w", err)
 	}
-
 	metrics := observability.NewMetrics(prometheus.NewRegistry())
 
 	rdb := redis.NewClient(&redis.Options{
@@ -75,12 +76,29 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	accountOpts := dial
+	accountOpts.Addr = cfg.AccountGRPCAddr
+	accountClient, err := accountgrpc.New(accountOpts)
+	if err != nil{
+		return err
+	}
+	ledgerOpts := dial
+	ledgerOpts.Addr = cfg.LedgerGRPCAddr
+	ledgerClient, err := ledgergrpc.New(ledgerOpts)
+	if err != nil{
+		return err
+	}
+
 
 	defer func() {
 		for name, closeFn := range map[string]func() error{
-			"auth grpc": authClient.Close, "customer grpc": customerClient.Close, "redis": rdb.Close,
+			"auth grpc": authClient.Close, 
+			"customer grpc": customerClient.Close, 
+			"redis": rdb.Close,
 			"document grpc": documentClient.Close,
 			"kyc grpc":      kycClient.Close,
+			"account grpc": accountClient.Close,
+			"ledger grpc": ledgerClient.Close,
 		} {
 			if err := closeFn(); err != nil {
 				log.Error("close failed", "resource", name, "error", err)
@@ -123,10 +141,12 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 		Log:         log,
 		Metrics:     metrics,
 		Me:          handlers.NewMe(customerClient, log),
-		Auth:        handlers.NewAuth(authClient),       // <--- ДОБАВЛЕНО
-		Customer:    handlers.NewCustomer(customerClient), // <--- ДОБАВЛЕНО
+		Auth:        handlers.NewAuth(authClient), 
+		Customer:    handlers.NewCustomer(customerClient), 
 		Document: handlers.NewDocument(documentClient),
 		KYC:      handlers.NewKYC(kycClient),
+		Account: handlers.NewAccount(accountClient, ledgerClient),
+		Ledger: handlers.NewLedger(ledgerClient, accountClient),
 		Health:      health,
 		JWKS:        jwksCache,
 		UserLimiter: userLimiter,

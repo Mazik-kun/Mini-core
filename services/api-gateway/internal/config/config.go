@@ -23,6 +23,8 @@ type Config struct {
 	CustomerGRPCAddr string
 	DocumentGRPCAddr string
 	KYCGRPCAddr      string
+	AccountGRPCAddr string
+	LedgerGRPCAddr string
 	GRPCTLS          bool
 	GRPCTimeout      time.Duration
 
@@ -86,11 +88,11 @@ func Load() (*Config, error) {
 		ShutdownTimeout: dur("GATEWAY_SHUTDOWN_TIMEOUT", 15*time.Second),
 
 		AuthGRPCAddr: getEnv("GATEWAY_AUTH_GRPC_ADDR", "auth:50051"),
-		// customer-service по умолчанию слушает :50052 (см. его config.go),
-		// поэтому дефолт здесь customer:50052, а не 50051 как в спеке.
 		CustomerGRPCAddr: getEnv("GATEWAY_CUSTOMER_GRPC_ADDR", "customer:50052"),
 		DocumentGRPCAddr: getEnv("GATEWAY_DOCUMENT_GRPC_ADDR", "document:50054"),
 		KYCGRPCAddr:      getEnv("GATEWAY_KYC_GRPC_ADDR", "kyc:50055"),
+		AccountGRPCAddr: getEnv("GATEWAY_ACCOUNT_GRPC_ADDR", "account:50056"),
+		LedgerGRPCAddr: getEnv("GATEWAY_LEDGER_GRPC_ADDR", "ledger:50057"),
 		GRPCTLS:          boolean("GATEWAY_GRPC_TLS", false),
 		GRPCTimeout:      dur("GATEWAY_GRPC_TIMEOUT", 5*time.Second),
 

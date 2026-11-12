@@ -1,4 +1,3 @@
-// Package httpserver — HTTP-сервер gateway и сборка роутера.
 package httpserver
 
 import (
