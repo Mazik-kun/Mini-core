@@ -1,14 +1,31 @@
+name: mini-core
+
+# Общие настройки для всех Go-сервисов
+x-app: &app
+  env_file: .env.docker
+  restart: on-failure
+  volumes:
+    - ./secrets:/app/secrets:ro
+
 services:
+  # ================= ИНФРАСТРУКТУРА =================
   postgres:
     image: postgres:16
     container_name: mini-core-postgres
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      # $$ -> переменные берутся уже внутри контейнера
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7
@@ -17,40 +34,207 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   minio:
     image: pgsty/silo:latest
     container_name: mini-core-minio
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"   # S3 API (сюда будет ходить document-service)
-      - "9001:9001"   # Web Console (сюда будем ходить мы)
+      - "9000:9000"
+      - "9001:9001"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     volumes:
       - minio_data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+
   kafka:
     image: apache/kafka:4.1.1
     container_name: mini-core-kafka
     ports:
-      - "9092:9092"
+      - "9092:9092" # EXTERNAL: для сервисов, запущенных локально на хосте
     environment:
-      - KAFKA_NODE_ID=1
-      - KAFKA_PROCESS_ROLES=broker,controller
-      - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093
-      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
-      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://:19092,EXTERNAL://:9092,CONTROLLER://:9093
+      # из контейнеров: kafka:19092, с хоста: localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:19092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     volumes:
       - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 --list > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 20s
+
+  # ================= МИГРАЦИИ =================
+  migrate:
+    build:
+      context: .
+      target: migrator_final
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -e
+        for srv in auth customer document kyc account ledger; do
+          echo "==> migrations: $$srv"
+          goose -dir /services/$$srv/migrations postgres "postgres://$$POSTGRES_USER:$$POSTGRES_PASSWORD@postgres:5432/$${srv}_db?sslmode=disable" up
+        done
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ================= МИКРОСЕРВИСЫ =================
+  auth:
+    <<: *app
+    build:
+      context: .
+      target: service
+      args:
+        SERVICE_NAME: auth
+    container_name: mini-core-auth
+    ports:
+      - "50051:50051"
+      - "8081:8081"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+
+  customer:
+    <<: *app
+    build:
+      context: .
+      target: service
+      args:
+        SERVICE_NAME: customer
+    container_name: mini-core-customer
+    ports:
+      - "50052:50052"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  document:
+    <<: *app
+    build:
+      context: .
+      target: service
+      args:
+        SERVICE_NAME: document
+    container_name: mini-core-document
+    ports:
+      - "50054:50054"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+
+  kyc:
+    <<: *app
+    build:
+      context: .
+      target: service
+      args:
+        SERVICE_NAME: kyc
+    container_name: mini-core-kyc
+    ports:
+      - "50055:50055"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      document:
+        condition: service_started
+      customer:
+        condition: service_started
+
+  account:
+    <<: *app
+    build:
+      context: .
+      target: service
+      args:
+        SERVICE_NAME: account
+    container_name: mini-core-account
+    ports:
+      - "50056:50056"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      customer:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+
+  ledger:
+    <<: *app
+    build:
+      context: .
+      target: service
+      args:
+        SERVICE_NAME: ledger
+    container_name: mini-core-ledger
+    ports:
+      - "50057:50057"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      account:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+
+  api-gateway:
+    <<: *app
+    build:
+      context: .
+      target: service
+      args:
+        SERVICE_NAME: api-gateway
+    container_name: mini-core-gateway
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    depends_on:
+      auth:
+        condition: service_started
+      customer:
+        condition: service_started
+      document:
+        condition: service_started
+      kyc:
+        condition: service_started
+      account:
+        condition: service_started
+      ledger:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:

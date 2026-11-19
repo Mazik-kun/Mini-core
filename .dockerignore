@@ -1,0 +1,15 @@
+.git
+.gitignore
+.gitattributes
+.env
+.env.*
+*.exe
+*.png
+*.ps1
+*.md
+*.txt
+*.json
+!go.work
+secrets
+**/*_test.go
+scripts
