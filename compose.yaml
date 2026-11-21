@@ -161,6 +161,8 @@ services:
       args:
         SERVICE_NAME: kyc
     container_name: mini-core-kyc
+    environment:
+      DOCUMENT_GRPC_ADDR: document:50054
     ports:
       - "50055:50055"
     depends_on:
