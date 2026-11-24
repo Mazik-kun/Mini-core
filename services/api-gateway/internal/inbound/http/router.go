@@ -61,6 +61,11 @@ func NewRouter(d Deps) http.Handler {
 	inner.HandleFunc("POST /v1/kyc/applications", d.KYC.Submit)
 	inner.HandleFunc("POST /v1/kyc/applications/{id}/claim", d.KYC.Claim)
 	inner.HandleFunc("POST /v1/kyc/applications/{id}/approve", d.KYC.Approve)
+	inner.HandleFunc("GET /v1/kyc/applications", d.KYC.List)                      
+	inner.HandleFunc("GET /v1/kyc/applications/{id}", d.KYC.Get)                   
+	inner.HandleFunc("POST /v1/kyc/applications/{id}/reject", d.KYC.Reject)        
+	inner.HandleFunc("POST /v1/kyc/applications/{id}/request-docs", d.KYC.RequestDocs) 
+	inner.HandleFunc("POST /v1/kyc/applications/{id}/resubmit", d.KYC.Resubmit)    
 
 	inner.HandleFunc("GET /v1/accounts", d.Account.ListMyAccounts)
 	inner.HandleFunc("GET /v1/accounts/{id}/balance", d.Account.GetBalance)

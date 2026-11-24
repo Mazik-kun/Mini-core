@@ -62,6 +62,11 @@ type KYCClient interface {
 	SubmitApplication(ctx context.Context, in *kycv1.SubmitApplicationRequest, opts ...grpc.CallOption) (*kycv1.Application, error)
 	ClaimApplication(ctx context.Context, in *kycv1.ClaimApplicationRequest, opts ...grpc.CallOption) (*kycv1.Application, error)
 	ApproveApplication(ctx context.Context, in *kycv1.ApproveApplicationRequest, opts ...grpc.CallOption) (*kycv1.Application, error)
+	GetApplication(ctx context.Context, in *kycv1.GetApplicationRequest, opts ...grpc.CallOption) (*kycv1.Application, error)
+	ListApplications(ctx context.Context, in *kycv1.ListApplicationsRequest, opts ...grpc.CallOption) (*kycv1.ListApplicationsResponse, error)
+	RejectApplication(ctx context.Context, in *kycv1.RejectApplicationRequest, opts ...grpc.CallOption) (*kycv1.Application, error)
+	RequestMoreDocuments(ctx context.Context, in *kycv1.RequestMoreDocumentsRequest, opts ...grpc.CallOption) (*kycv1.Application, error)
+	ResubmitApplication(ctx context.Context, in *kycv1.ResubmitApplicationRequest, opts ...grpc.CallOption) (*kycv1.Application, error)
 }
 
 type AccountClient interface {

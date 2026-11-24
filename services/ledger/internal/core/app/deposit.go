@@ -49,9 +49,13 @@ func (uc *DepositUseCase) Deposit(ctx context.Context, in DepositInput) (domain.
 	}
 
 	// 2. Проверка счета
-	_, status, err := uc.accountClient.GetAccount(ctx, in.AccountID)
+	currency, status, err := uc.accountClient.GetAccount(ctx, in.AccountID)
 	if err != nil || status != "ACCOUNT_STATUS_ACTIVE" {
 		return domain.Transaction{}, fmt.Errorf("account is not active")
+	}
+
+	if currency != in.Currency{
+		return domain.Transaction{}, fmt.Errorf("currency mismatched")
 	}
 
 	// 3. Начинаем транзакцию

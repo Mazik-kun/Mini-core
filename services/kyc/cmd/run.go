@@ -65,9 +65,9 @@ func run(log *slog.Logger) error {
 	officerUC := app.NewOfficerActionsUseCase(repo, producer, cfg.KafkaKycTopic)
 	getUC := app.NewGetApplicationUseCase(repo)
 	listUC := app.NewListApplicationsUseCase(repo)
+	resubmitUC := app.NewResubmitApplicationUseCase(repo, docCli, producer, cfg.KafkaKycTopic, []string{"PASSPORT", "SELFIE"})
 
-	// Передаем submitUC вместо nil
-	srv := grpcserver.NewServer(submitUC, officerUC, getUC, listUC)
+	srv := grpcserver.NewServer(submitUC, officerUC, getUC, listUC, resubmitUC)
 
 	listener, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil { return err }

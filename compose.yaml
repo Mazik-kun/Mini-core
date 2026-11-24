@@ -81,6 +81,25 @@ services:
       retries: 15
       start_period: 20s
 
+  # Создаёт топики ДО старта сервисов: consumer, подписавшийся на ещё не существующий
+  # топик, может его не подхватить (гонка при первом запуске / после down -v)
+  kafka-init:
+    image: apache/kafka:4.1.1
+    container_name: mini-core-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -e
+        for t in auth.events customer.events kyc.events ledger.events; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 \
+            --create --if-not-exists --topic $$t --partitions 1 --replication-factor 1
+        done
+        echo "topics ready"
+
   # ================= МИГРАЦИИ =================
   migrate:
     build:
@@ -116,8 +135,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
   customer:
     <<: *app
@@ -132,8 +151,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
 
@@ -162,14 +181,16 @@ services:
         SERVICE_NAME: kyc
     container_name: mini-core-kyc
     environment:
+      # В .env.docker DOCUMENT_GRPC_ADDR=:50054 - это адрес прослушивания сервиса document.
+      # KYC читает ту же переменную как адрес клиента, поэтому для него переопределяем.
       DOCUMENT_GRPC_ADDR: document:50054
     ports:
       - "50055:50055"
     depends_on:
       migrate:
         condition: service_completed_successfully
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
       document:
         condition: service_started
       customer:
@@ -190,8 +211,8 @@ services:
         condition: service_completed_successfully
       customer:
         condition: service_started
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
   ledger:
     <<: *app
@@ -208,8 +229,8 @@ services:
         condition: service_completed_successfully
       account:
         condition: service_started
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
   api-gateway:
     <<: *app

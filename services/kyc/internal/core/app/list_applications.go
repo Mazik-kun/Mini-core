@@ -33,7 +33,6 @@ func (uc *ListApplicationsUseCase) ListApplications(ctx context.Context, in List
 		return nil, domain.ErrAccessDenied
 	}
 	
-	// Упрощенная пагинация без токенов, просто по limit (для простоты этапа)
 	limit := in.PageSize
 	if limit <= 0 {
 		limit = 50

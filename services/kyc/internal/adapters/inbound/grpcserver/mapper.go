@@ -46,3 +46,16 @@ func toProto(app domain.Application) *kycv1.Application {
 		UpdatedAt:       timestamppb.New(app.UpdatedAt),
 	}
 }
+func statusFromProto(s kycv1.KycStatus)(domain.Status, bool){
+	switch s {
+	case kycv1.KycStatus_KYC_STATUS_DRAFT: return domain.StatusDraft, true
+	case kycv1.KycStatus_KYC_STATUS_SUBMITTED: return domain.StatusSubmitted, true
+	case kycv1.KycStatus_KYC_STATUS_AUTO_CHECKS: return domain.StatusAutoChecks, true
+	case kycv1.KycStatus_KYC_STATUS_IN_REVIEW: return domain.StatusInReview, true
+	case kycv1.KycStatus_KYC_STATUS_APPROVED: return domain.StatusApproved, true
+	case kycv1.KycStatus_KYC_STATUS_REJECTED: return domain.StatusRejected, true
+	case kycv1.KycStatus_KYC_STATUS_AUTO_REJECTED: return domain.StatusAutoRejected, true
+	case kycv1.KycStatus_KYC_STATUS_DOCS_REQUESTED: return domain.StatusDocsRequested, true
+	default: return "", false
+	}
+}
