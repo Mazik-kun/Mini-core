@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/Mazik-kun/mini-core/services/ledger/internal/adapters/outbound/postgres/db"
@@ -20,7 +21,7 @@ func NewLedgerRepo(q *db.Queries) *LedgerRepo {
 
 func (r *LedgerRepo) ListTransactions(ctx context.Context, accountID uuid.UUID, fromTime, toTime pgtype.Timestamptz, limit, offset int32)([]domain.Transaction, error){
 	
-	rows, err := r.q.GetTransactionByAccountID(ctx, db.GetTransactionByAccountIDParams{
+	rows, err := r.q.GetTransactionsByAccountID(ctx, db.GetTransactionsByAccountIDParams{
 		AccountID: accountID,
 		FromTime: fromTime,
 		ToTime: toTime,
@@ -208,5 +209,52 @@ func (r *LedgerRepo) GetBalance(ctx context.Context, accountID uuid.UUID) (domai
 		AccountID: row.AccountID,
 		Amount:    row.Amount,
 		Currency:  row.Currency,
+	}, nil
+}
+
+func (r *LedgerRepo) GetTransactionByID(ctx context.Context, id uuid.UUID) (domain.Transaction, error) {
+	row, err := r.q.GetTransactionByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Transaction{}, domain.ErrTransactionNotFound
+		}
+		return domain.Transaction{}, fmt.Errorf("get transaction: %w", err)
+	}
+
+	entriesRows, err := r.q.GetEntriesByTransactionID(ctx, row.ID)
+	if err != nil {
+		return domain.Transaction{}, fmt.Errorf("get entries for tx %s: %w", row.ID, err)
+	}
+
+	var fromAcc, toAcc uuid.UUID
+	var amount int64
+	var currency string
+
+	for _, e := range entriesRows {
+		switch domain.Direction(e.Direction) {
+		case domain.DirectionDebit:
+			fromAcc = e.AccountID
+			amount = e.Amount
+			currency = e.Currency
+		case domain.DirectionCredit:
+			toAcc = e.AccountID
+			// у пополнения нет DEBIT-проводки: сумму берём с CREDIT
+			if amount == 0 {
+				amount = e.Amount
+				currency = e.Currency
+			}
+		}
+	}
+
+	return domain.Transaction{
+		ID:             row.ID,
+		Status:         domain.Status(row.Status),
+		Type:           domain.TransactionType(row.Type),
+		FromAccountID:  fromAcc,
+		ToAccountID:    toAcc,
+		Amount:         amount,
+		Currency:       currency,
+		IdempotencyKey: row.IdempotencyKey,
+		CreatedAt:      row.CreatedAt.Time,
 	}, nil
 }

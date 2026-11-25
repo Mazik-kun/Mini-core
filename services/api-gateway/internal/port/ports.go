@@ -79,4 +79,6 @@ type LedgerClient interface {
 	Transfer(ctx context.Context, in *ledgerv1.TransferRequest, opts ...grpc.CallOption) (*ledgerv1.Transaction, error)
 	GetBalance(ctx context.Context, in *ledgerv1.GetBalanceRequest, opts ...grpc.CallOption) (*ledgerv1.GetBalanceResponse, error)
 	Deposit(ctx context.Context, in *ledgerv1.DepositRequest, opts ...grpc.CallOption) (*ledgerv1.Transaction, error)
+	GetTransaction(ctx context.Context, in *ledgerv1.GetTransactionRequest, opts ...grpc.CallOption) (*ledgerv1.Transaction, error)
+	ListTransactions(ctx context.Context, in *ledgerv1.ListTransactionsRequest, opts ...grpc.CallOption) (*ledgerv1.ListTransactionsResponse, error)
 }

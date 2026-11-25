@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createEntry = `-- name: CreateEntry :one
@@ -222,24 +223,60 @@ func (q *Queries) GetPendingOutboxEvents(ctx context.Context) ([]Outbox, error) 
 	return items, nil
 }
 
-const getTransactionByAccountID = `-- name: GetTransactionByAccountID :many
-SElECT DISTINCT t.id, t.status, t.type, t.idempotency_key, t.created_at FROM transactions t
+const getTransactionByID = `-- name: GetTransactionByID :one
+SELECT id, status, type, idempotency_key, created_at FROM transactions WHERE id = $1
+`
+
+func (q *Queries) GetTransactionByID(ctx context.Context, id uuid.UUID) (Transaction, error) {
+	row := q.db.QueryRow(ctx, getTransactionByID, id)
+	var i Transaction
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.Type,
+		&i.IdempotencyKey,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getTransactionByIdempotencyKey = `-- name: GetTransactionByIdempotencyKey :one
+SELECT id, status, type, idempotency_key, created_at FROM transactions WHERE idempotency_key = $1
+`
+
+func (q *Queries) GetTransactionByIdempotencyKey(ctx context.Context, idempotencyKey string) (Transaction, error) {
+	row := q.db.QueryRow(ctx, getTransactionByIdempotencyKey, idempotencyKey)
+	var i Transaction
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.Type,
+		&i.IdempotencyKey,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getTransactionsByAccountID = `-- name: GetTransactionsByAccountID :many
+SELECT DISTINCT t.id, t.status, t.type, t.idempotency_key, t.created_at FROM transactions t
 JOIN entries e ON t.id = e.transaction_id
-WHERE e.account_id = $1 AND ($4::timestampz IS NULL OR t.created_at >= $4) AND ($5::timestampz IS NULL OR t.created_at >= $5)
+WHERE e.account_id = $1
+  AND ($4::timestamptz IS NULL OR t.created_at >= $4)
+  AND ($5::timestamptz IS NULL OR t.created_at <= $5)
 ORDER BY t.created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type GetTransactionByAccountIDParams struct {
+type GetTransactionsByAccountIDParams struct {
 	AccountID uuid.UUID
 	Limit     int32
 	Offset    int32
-	FromTime  interface{}
-	ToTime    interface{}
+	FromTime  pgtype.Timestamptz
+	ToTime    pgtype.Timestamptz
 }
 
-func (q *Queries) GetTransactionByAccountID(ctx context.Context, arg GetTransactionByAccountIDParams) ([]Transaction, error) {
-	rows, err := q.db.Query(ctx, getTransactionByAccountID,
+func (q *Queries) GetTransactionsByAccountID(ctx context.Context, arg GetTransactionsByAccountIDParams) ([]Transaction, error) {
+	rows, err := q.db.Query(ctx, getTransactionsByAccountID,
 		arg.AccountID,
 		arg.Limit,
 		arg.Offset,
@@ -268,23 +305,6 @@ func (q *Queries) GetTransactionByAccountID(ctx context.Context, arg GetTransact
 		return nil, err
 	}
 	return items, nil
-}
-
-const getTransactionByIdempotencyKey = `-- name: GetTransactionByIdempotencyKey :one
-SELECT id, status, type, idempotency_key, created_at FROM transactions WHERE idempotency_key = $1
-`
-
-func (q *Queries) GetTransactionByIdempotencyKey(ctx context.Context, idempotencyKey string) (Transaction, error) {
-	row := q.db.QueryRow(ctx, getTransactionByIdempotencyKey, idempotencyKey)
-	var i Transaction
-	err := row.Scan(
-		&i.ID,
-		&i.Status,
-		&i.Type,
-		&i.IdempotencyKey,
-		&i.CreatedAt,
-	)
-	return i, err
 }
 
 const markOutboxEventAsSent = `-- name: MarkOutboxEventAsSent :exec

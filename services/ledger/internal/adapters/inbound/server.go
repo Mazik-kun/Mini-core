@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -21,16 +22,23 @@ type Server struct {
 	transferUC   *app.TransferUseCase
 	depositUC    *app.DepositUseCase
 	balanceUC    *app.GetBalanceUseCase
-	listUC *app.ListTransactionsUseCase
+	listUC       *app.ListTransactionsUseCase
+	getTxUC      *app.GetTransactionUseCase
 	log          *slog.Logger
 }
 
-func NewServer(transferUC *app.TransferUseCase, depositUC *app.DepositUseCase, balanceUC *app.GetBalanceUseCase, listUC *app.ListTransactionsUseCase, log *slog.Logger) *Server {
+const (
+	defaultPageSize = 20
+	maxPageSize     = 100
+)
+
+func NewServer(transferUC *app.TransferUseCase, depositUC *app.DepositUseCase, balanceUC *app.GetBalanceUseCase, listUC *app.ListTransactionsUseCase, getTxUC *app.GetTransactionUseCase, log *slog.Logger) *Server {
 	return &Server{
 		transferUC: transferUC,
 		depositUC:  depositUC,
 		balanceUC:  balanceUC,
-		listUC: listUC,
+		listUC:     listUC,
+		getTxUC:    getTxUC,
 		log:        log,
 	}
 }
@@ -92,46 +100,76 @@ func (s *Server) GetBalance(ctx context.Context, req *ledgerv1.GetBalanceRequest
 	}, nil
 }
 
-// GetTransaction пока оставим Unimplemented для простоты
 func (s *Server) GetTransaction(ctx context.Context, req *ledgerv1.GetTransactionRequest) (*ledgerv1.Transaction, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented yet")
+	id, err := uuid.Parse(req.GetTransactionId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid transaction_id")
+	}
+
+	tx, err := s.getTxUC.GetTransaction(ctx, id)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+	return toProtoTransaction(tx), nil
 }
-func (s *Server) ListTransactions(ctx context.Context, req *ledgerv1.ListTransactionsRequest) (*ledgerv1.ListTransactionsResponse, error){
-	accID, err := uuid.Parse(req.AccountId)
-	if err != nil{
+
+// ListTransactions: page_token трактуется как offset (число в строке).
+// Запрашиваем limit+1 строк, чтобы понять, есть ли следующая страница.
+func (s *Server) ListTransactions(ctx context.Context, req *ledgerv1.ListTransactionsRequest) (*ledgerv1.ListTransactionsResponse, error) {
+	accID, err := uuid.Parse(req.GetAccountId())
+	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid account_id")
 	}
 
 	var fromTime, toTime pgtype.Timestamptz
-	if req.From != nil {
-		fromTime = pgtype.Timestamptz{Time: req.From.AsTime(), Valid: true}
+	if req.GetFrom() != nil {
+		fromTime = pgtype.Timestamptz{Time: req.GetFrom().AsTime(), Valid: true}
 	}
-	if req.To != nil{
-		toTime = pgtype.Timestamptz{Time: req.To.AsTime(), Valid: true}
+	if req.GetTo() != nil {
+		toTime = pgtype.Timestamptz{Time: req.GetTo().AsTime(), Valid: true}
 	}
 
-	limit := int32(20)
+	limit := int32(defaultPageSize)
 	offset := int32(0)
-	if req.Page != nil && req.Page.PageSize > 0 {
-		limit = req.Page.PageSize
+	if p := req.GetPage(); p != nil {
+		if p.GetPageSize() > 0 {
+			limit = p.GetPageSize()
+		}
+		if limit > maxPageSize {
+			limit = maxPageSize
+		}
+		if tok := p.GetPageToken(); tok != "" {
+			n, err := strconv.ParseInt(tok, 10, 32)
+			if err != nil || n < 0 {
+				return nil, status.Error(codes.InvalidArgument, "invalid page_token")
+			}
+			offset = int32(n)
+		}
 	}
 
-	txs, err := s.listUC.ListTransactions(ctx, accID, fromTime, toTime, limit, offset)
-
-	if err != nil{
+	txs, err := s.listUC.ListTransactions(ctx, accID, fromTime, toTime, limit+1, offset)
+	if err != nil {
+		s.log.Error("failed to list transactions", "error", err)
 		return nil, toGRPCError(err)
 	}
 
-	pbTxs := make([]*ledgerv1.Transaction, 0, len(txs))
+	nextToken := ""
+	if int32(len(txs)) > limit {
+		txs = txs[:limit]
+		nextToken = strconv.Itoa(int(offset + limit))
+	}
 
-	for _, tx := range txs{
+	pbTxs := make([]*ledgerv1.Transaction, 0, len(txs))
+	for _, tx := range txs {
 		pbTxs = append(pbTxs, toProtoTransaction(tx))
 	}
 
 	return &ledgerv1.ListTransactionsResponse{
 		Transactions: pbTxs,
+		Page:         &commonv1.PageResponse{NextPageToken: nextToken},
 	}, nil
 }
+
 func toGRPCError(err error) error {
 	switch {
 	case errors.Is(err, domain.ErrInsufficientFunds):

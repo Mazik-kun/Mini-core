@@ -18,8 +18,9 @@ type Querier interface {
 	GetBalancesForUpdate(ctx context.Context, arg GetBalancesForUpdateParams) ([]Balance, error)
 	GetEntriesByTransactionID(ctx context.Context, transactionID uuid.UUID) ([]Entry, error)
 	GetPendingOutboxEvents(ctx context.Context) ([]Outbox, error)
-	GetTransactionByAccountID(ctx context.Context, arg GetTransactionByAccountIDParams) ([]Transaction, error)
+	GetTransactionByID(ctx context.Context, id uuid.UUID) (Transaction, error)
 	GetTransactionByIdempotencyKey(ctx context.Context, idempotencyKey string) (Transaction, error)
+	GetTransactionsByAccountID(ctx context.Context, arg GetTransactionsByAccountIDParams) ([]Transaction, error)
 	MarkOutboxEventAsSent(ctx context.Context, id uuid.UUID) error
 	UpsertBalance(ctx context.Context, arg UpsertBalanceParams) error
 }

@@ -34,10 +34,12 @@ RETURNING *;
 -- name: GetEntriesByTransactionID :many
 SELECT * FROM entries WHERE transaction_id = $1;
 
--- name: GetTransactionByAccountID :many
-SElECT DISTINCT t.* FROM transactions t
+-- name: GetTransactionsByAccountID :many
+SELECT DISTINCT t.* FROM transactions t
 JOIN entries e ON t.id = e.transaction_id
-WHERE e.account_id = $1 AND (sqlc.narg('from_time')::timestampz IS NULL OR t.created_at >= sqlc.narg('from_time')) AND (sqlc.narg('to_time')::timestampz IS NULL OR t.created_at >= sqlc.narg('to_time'))
+WHERE e.account_id = $1
+  AND (sqlc.arg('from_time')::timestamptz IS NULL OR t.created_at >= sqlc.arg('from_time'))
+  AND (sqlc.arg('to_time')::timestamptz IS NULL OR t.created_at <= sqlc.arg('to_time'))
 ORDER BY t.created_at DESC
 LIMIT $2 OFFSET $3;
 
@@ -49,3 +51,6 @@ LIMIT 10;
 
 -- name: MarkOutboxEventAsSent :exec
 UPDATE outbox SET status = 'SENT' WHERE id = $1;
+
+-- name: GetTransactionByID :one
+SELECT * FROM transactions WHERE id = $1;

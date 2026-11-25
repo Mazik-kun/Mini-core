@@ -21,6 +21,8 @@ type LedgerRepository interface {
 	GetBalance(ctx context.Context, accountID uuid.UUID) (Balance, error)
 
 	ListTransactions(ctx context.Context, accountID uuid.UUID, fromTime, toTime pgtype.Timestamptz, limit, offset int32) ([]Transaction, error)
+	// GetTransactionByID возвращает транзакцию с проводками; ErrTransactionNotFound, если нет.
+	GetTransactionByID(ctx context.Context, id uuid.UUID) (Transaction, error)
 }
 
 type AccountClient interface {

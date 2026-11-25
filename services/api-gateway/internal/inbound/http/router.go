@@ -69,6 +69,8 @@ func NewRouter(d Deps) http.Handler {
 
 	inner.HandleFunc("GET /v1/accounts", d.Account.ListMyAccounts)
 	inner.HandleFunc("GET /v1/accounts/{id}/balance", d.Account.GetBalance)
+	inner.HandleFunc("GET /v1/accounts/{id}/transactions", d.Ledger.ListByAccount)
+	inner.HandleFunc("GET /v1/transactions/{id}", d.Ledger.GetTransaction)
 	inner.HandleFunc("POST /v1/transfers", d.Ledger.Transfer)
 	inner.HandleFunc("POST /v1/ledger/deposit", d.Ledger.Deposit)
 

@@ -48,6 +48,7 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 	depositUC := app.NewDepositUseCase(pool, ledgerRepo, accountClient)
 	balanceUC := app.NewGetBalanceUseCase(ledgerRepo)
 	listUC := app.NewListTransactionsUseCase(ledgerRepo)
+	getTxUC := app.NewGetTransactionUseCase(ledgerRepo)
 	
 	outboxWorker := kafka.NewOutboxWorker(queries, cfg.KafkaBrokers, cfg.KafkaTopic, log)
 	// 4. gRPC Сервер
@@ -65,7 +66,7 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 		),
 	)
 	
-	ledgerServer := grpcserver.NewServer(transferUC, depositUC, balanceUC, listUC, log)
+	ledgerServer := grpcserver.NewServer(transferUC, depositUC, balanceUC, listUC, getTxUC, log)
 	ledgerv1.RegisterLedgerServiceServer(grpcServer, ledgerServer)
 
 	healthServer := health.NewServer()
