@@ -43,3 +43,7 @@ type ObjectStorage interface {
 	SHA256(ctx context.Context, key string) (string, error) // hex, стримом
 	Remove(ctx context.Context, key string) error
 }
+
+type CustomerClient interface {
+    GetCustomerStatus(ctx context.Context, customerID uuid.UUID) (string, error)
+}

@@ -17,6 +17,23 @@ type Account struct {
 }
 func NewAccount (c port.AccountClient, lc port.LedgerClient) *Account {return &Account{client: c, ledgerClient: lc}}
 
+func (h *Account) OpenAccount(w http.ResponseWriter, r *http.Request) {
+	customerID, ok := customerIDFromClaims(w, r)
+	if !ok {
+		return
+	}
+
+	var req accountv1.OpenAccountRequest
+	if !parseProtoJSON(w, r, &req) {
+		return
+	}
+	req.CustomerId = customerID // IDOR-защита: открываем счет только себе
+
+	resp, err := h.client.OpenAccount(r.Context(), &req)
+	respondProtoJSON(w, r, resp, err)
+}
+
+
 func (h *Account) ListMyAccounts(w http.ResponseWriter, r *http.Request){
 	customerID, ok := customerIDFromClaims(w,r)
 	if !ok {return}
@@ -54,3 +71,31 @@ func (h *Account) GetBalance(w http.ResponseWriter, r *http.Request){
 	respondProtoJSON(w, r, resp, err)
 }
 	
+func (h *Account) CloseAccount(w http.ResponseWriter, r *http.Request) {
+	customerID, ok := customerIDFromClaims(w, r)
+	if !ok {
+		return
+	}
+
+	accID := r.PathValue("id")
+	if _, err := uuid.Parse(accID); err != nil {
+		apierr.WriteStatus(w, r, codes.InvalidArgument, "invalid account id")
+		return
+	}
+
+	// Проверяем IDOR (что счет принадлежит клиенту)
+	isOwner, err := checkAccountOwnership(r.Context(), h.client, customerID, accID)
+	if err != nil {
+		respondProtoJSON(w, r, nil, err)
+		return
+	}
+	if !isOwner {
+		apierr.WriteStatus(w, r, codes.PermissionDenied, "you do not own this account")
+		return
+	}
+
+	resp, err := h.client.CloseAccount(r.Context(), &accountv1.CloseAccountRequest{
+		AccountId: accID,
+	})
+	respondProtoJSON(w, r, resp, err)
+}

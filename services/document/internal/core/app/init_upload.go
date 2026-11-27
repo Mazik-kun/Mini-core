@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
 	"github.com/Mazik-kun/mini-core/services/document/internal/core/domain"
 )
 
@@ -14,10 +13,11 @@ type InitUploadUseCase struct {
 	repo      domain.DocumentRepository
 	storage   domain.ObjectStorage
 	uploadTTL time.Duration
+	customerCli domain.CustomerClient
 }
 
-func NewInitUploadUseCase(repo domain.DocumentRepository, storage domain.ObjectStorage, uploadTTL time.Duration) *InitUploadUseCase {
-	return &InitUploadUseCase{repo: repo, storage: storage, uploadTTL: uploadTTL}
+func NewInitUploadUseCase(repo domain.DocumentRepository, storage domain.ObjectStorage, uploadTTL time.Duration, customerCli domain.CustomerClient) *InitUploadUseCase {
+	return &InitUploadUseCase{repo: repo, storage: storage, uploadTTL: uploadTTL, customerCli: customerCli}
 }
 
 type InitUploadInput struct {
@@ -31,6 +31,16 @@ type InitUploadOutput struct {
 }
 
 func (uc *InitUploadUseCase) InitUpload(ctx context.Context, in InitUploadInput) (InitUploadOutput, error) {
+	status, err := uc.customerCli.GetCustomerStatus(ctx, in.CustomerID)
+    if err != nil {
+        return InitUploadOutput{}, fmt.Errorf("check customer status: %w", err)
+    }
+    
+    // Если клиент уже верифицирован — загружать документы нельзя
+    if status == "CUSTOMER_STATUS_ACTIVE" {
+        return InitUploadOutput{}, domain.ErrCustomerAlreadyActive 
+    }
+	
 	if err := requireAccess(ctx, in.CustomerID); err != nil {
 		return InitUploadOutput{}, err
 	}

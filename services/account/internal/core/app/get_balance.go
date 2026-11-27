@@ -2,36 +2,41 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/Mazik-kun/mini-core/services/account/internal/core/domain"
 )
 
 type GetBalanceUseCase struct {
-	repo domain.AccountRepository
+	repo      domain.AccountRepository
+	ledgerCli domain.LedgerClient
 }
 
-func NewGetBalanceUseCase(repo domain.AccountRepository) *GetBalanceUseCase {
-	return &GetBalanceUseCase{repo: repo}
+func NewGetBalanceUseCase(repo domain.AccountRepository, ledgerCli domain.LedgerClient) *GetBalanceUseCase {
+	return &GetBalanceUseCase{repo: repo, ledgerCli: ledgerCli}
 }
 
-// BalanceDTO — структура для возврата баланса (пока Ledger не готов)
 type BalanceDTO struct {
 	Amount   int64
 	Currency string
 }
 
 func (uc *GetBalanceUseCase) GetBalance(ctx context.Context, accountID uuid.UUID) (BalanceDTO, error) {
-	// 1. Проверяем, что счет вообще существует
+	// 1. Проверяем, что счёт существует (иначе 404), и берём currency
 	acc, err := uc.repo.GetByID(ctx, accountID)
 	if err != nil {
 		return BalanceDTO{}, err
 	}
 
-	// TODO: Сходить по gRPC в Ledger Service за реальным балансом.
-	// Пока Ledger не написан, отдаем 0.
+	// 2. Идём за балансом в Ledger
+	amount, err := uc.ledgerCli.GetBalance(ctx, accountID)
+	if err != nil {
+		return BalanceDTO{}, fmt.Errorf("get balance from ledger: %w", err)
+	}
+
 	return BalanceDTO{
-		Amount:   0,
-		Currency: acc.Currency,
+		Amount:   amount,
+		Currency: acc.Currency, // Источник истины по валюте — Account
 	}, nil
 }

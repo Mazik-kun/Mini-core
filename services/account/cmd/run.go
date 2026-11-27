@@ -17,7 +17,9 @@ import (
 
 	accountv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/account/v1"
 	"github.com/Mazik-kun/mini-core/services/account/internal/adapters/inbound/grpcserver"
+	"github.com/Mazik-kun/mini-core/services/account/internal/adapters/outbound/customergrpc"
 	"github.com/Mazik-kun/mini-core/services/account/internal/adapters/outbound/kafka"
+	"github.com/Mazik-kun/mini-core/services/account/internal/adapters/outbound/ledgergrpc"
 	"github.com/Mazik-kun/mini-core/services/account/internal/adapters/outbound/postgres"
 	"github.com/Mazik-kun/mini-core/services/account/internal/adapters/outbound/postgres/db"
 	"github.com/Mazik-kun/mini-core/services/account/internal/config"
@@ -35,16 +37,23 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 	queries := db.New(pool)
 	accountRepo := postgres.NewAccountRepo(queries)
 
-	// 2. ВРЕМЕННАЯ ЗАГЛУШКА вместо gRPC клиента
-	customerCli := &app.MockCustomerClient{}
+	ledgerCli, err := ledgergrpc.New(cfg.LedgerGRPCAddr)
+	if err != nil {
+		return fmt.Errorf("ledger grpc: %w", err)
+	}
+
+	customerCli, err := customergrpc.New(cfg.CustomerGRPCAddr)
+	if err != nil {
+		return fmt.Errorf("customer grpc: %w", err)
+	}
 
 	// Use Cases
 	openUC := app.NewOpenAccountUseCase(accountRepo, customerCli)
 	getUC := app.NewGetAccountUseCase(accountRepo)
 	listUC := app.NewListAccountsUseCase(accountRepo)
-	blockUC := app.NewBlockAccountUseCase(accountRepo)     // <-- ДОБАВИТЬ
-	closeUC := app.NewCloseAccountUseCase(accountRepo)     // <-- ДОБАВИТЬ
-	balanceUC := app.NewGetBalanceUseCase(accountRepo)     // <-- ДОБАВИТЬ
+	blockUC := app.NewBlockAccountUseCase(accountRepo)     
+	closeUC := app.NewCloseAccountUseCase(accountRepo, ledgerCli)     
+	balanceUC := app.NewGetBalanceUseCase(accountRepo, ledgerCli)     
 
 	// gRPC Сервер
 		grpcServer := grpc.NewServer(

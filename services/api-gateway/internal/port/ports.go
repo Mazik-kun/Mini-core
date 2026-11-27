@@ -73,6 +73,8 @@ type AccountClient interface {
 	GetAccount(ctx context.Context, in *accountv1.GetAccountRequest, opts ...grpc.CallOption) (*accountv1.Account, error)
 	ListAccounts(ctx context.Context, in *accountv1.ListAccountsRequest, opts ...grpc.CallOption) (*accountv1.ListAccountsResponse, error)
 	GetBalance(ctx context.Context, in *accountv1.GetBalanceRequest, opts ...grpc.CallOption) (*accountv1.GetBalanceResponse, error)
+	OpenAccount(ctx context.Context, in *accountv1.OpenAccountRequest, opts ...grpc.CallOption) (*accountv1.Account, error)
+	CloseAccount(ctx context.Context, in *accountv1.CloseAccountRequest, opts ...grpc.CallOption) (*accountv1.Account, error)
 }
 
 type LedgerClient interface {

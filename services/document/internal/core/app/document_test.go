@@ -12,11 +12,23 @@ import (
 )
 
 const testMaxSize = 1024
+type fakeCustomerClient struct {
+	status string
+	err    error
+}
 
+func (f *fakeCustomerClient) GetCustomerStatus(ctx context.Context, customerID uuid.UUID) (string, error) {
+	if f.err != nil {
+		return "", f.err
+	}
+	return f.status, nil
+}
 func TestInitUpload_Happy(t *testing.T) {
 	cust := uuid.New()
 	repo, st := newFakeRepo(), newFakeStorage()
-	uc := NewInitUploadUseCase(repo, st, 15*time.Minute)
+	// Передаем статус, при котором загрузка РАЗРЕШЕНА
+	cli := &fakeCustomerClient{status: "CUSTOMER_STATUS_PROFILE_FILLED"}
+	uc := NewInitUploadUseCase(repo, st, 15*time.Minute, cli)
 
 	out, err := uc.InitUpload(clientCtx(cust), InitUploadInput{CustomerID: cust, Type: domain.TypePassport})
 	if err != nil {
@@ -40,7 +52,8 @@ func TestInitUpload_Happy(t *testing.T) {
 
 func TestInitUpload_InvalidType(t *testing.T) {
 	cust := uuid.New()
-	uc := NewInitUploadUseCase(newFakeRepo(), newFakeStorage(), time.Minute)
+		cli := &fakeCustomerClient{status: "CUSTOMER_STATUS_PROFILE_FILLED"}
+	uc := NewInitUploadUseCase(newFakeRepo(), newFakeStorage(), time.Minute, cli)
 	_, err := uc.InitUpload(clientCtx(cust), InitUploadInput{CustomerID: cust, Type: "VISA"})
 	if !errors.Is(err, domain.ErrInvalidDocumentType) {
 		t.Errorf("got %v", err)
@@ -48,7 +61,8 @@ func TestInitUpload_InvalidType(t *testing.T) {
 }
 
 func TestInitUpload_IDOR(t *testing.T) {
-	uc := NewInitUploadUseCase(newFakeRepo(), newFakeStorage(), time.Minute)
+		cli := &fakeCustomerClient{status: "CUSTOMER_STATUS_PROFILE_FILLED"}
+	uc := NewInitUploadUseCase(newFakeRepo(), newFakeStorage(), time.Minute, cli)
 	_, err := uc.InitUpload(clientCtx(uuid.New()), InitUploadInput{CustomerID: uuid.New(), Type: domain.TypeSelfie})
 	if !errors.Is(err, domain.ErrAccessDenied) {
 		t.Errorf("got %v", err)
@@ -56,7 +70,8 @@ func TestInitUpload_IDOR(t *testing.T) {
 }
 
 func TestInitUpload_OfficerCanActForAnyCustomer(t *testing.T) {
-	uc := NewInitUploadUseCase(newFakeRepo(), newFakeStorage(), time.Minute)
+		cli := &fakeCustomerClient{status: "CUSTOMER_STATUS_PROFILE_FILLED"}
+	uc := NewInitUploadUseCase(newFakeRepo(), newFakeStorage(), time.Minute, cli)
 	if _, err := uc.InitUpload(officerCtx(), InitUploadInput{CustomerID: uuid.New(), Type: domain.TypeSelfie}); err != nil {
 		t.Errorf("officer must have access: %v", err)
 	}
@@ -287,5 +302,16 @@ func TestListDocuments_PaginationAndIDOR(t *testing.T) {
 	}
 	if _, err := uc.ListDocuments(clientCtx(uuid.New()), ListDocumentsInput{CustomerID: cust}); !errors.Is(err, domain.ErrAccessDenied) {
 		t.Errorf("idor: got %v", err)
+	}
+}
+
+func TestInitUpload_CustomerAlreadyActive(t *testing.T) {
+	cust := uuid.New()
+	cli := &fakeCustomerClient{status: "CUSTOMER_STATUS_ACTIVE"} // <--- Уже прошел KYC
+	uc := NewInitUploadUseCase(newFakeRepo(), newFakeStorage(), time.Minute, cli)
+
+	_, err := uc.InitUpload(clientCtx(cust), InitUploadInput{CustomerID: cust, Type: domain.TypePassport})
+	if !errors.Is(err, domain.ErrCustomerAlreadyActive) { // Убедитесь, что такая ошибка есть в domain
+		t.Errorf("expected ErrCustomerAlreadyActive, got %v", err)
 	}
 }

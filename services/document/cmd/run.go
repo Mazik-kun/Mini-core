@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"os/signal"
@@ -18,6 +19,7 @@ import (
 	"github.com/Mazik-kun/mini-core/pkg/authjwt"
 	"github.com/Mazik-kun/mini-core/pkg/grpc/interceptors"
 	grpcserver "github.com/Mazik-kun/mini-core/services/document/internal/adapters/inbound/grpcserver"
+	"github.com/Mazik-kun/mini-core/services/document/internal/adapters/outbound/customergrpc"
 	minioadapter "github.com/Mazik-kun/mini-core/services/document/internal/adapters/outbound/minio"
 	"github.com/Mazik-kun/mini-core/services/document/internal/adapters/outbound/postgres"
 	"github.com/Mazik-kun/mini-core/services/document/internal/adapters/outbound/postgres/db"
@@ -76,7 +78,12 @@ func run(log *slog.Logger) error {
 	queries := db.New(pool)
 	repo := postgres.NewDocumentRepository(queries)
 
-	initUpload := app.NewInitUploadUseCase(repo, storage, cfg.UploadURLTTL)
+	customerCli, err := customergrpc.New(cfg.CustomerGRPCAddr)
+	if err != nil {
+		return fmt.Errorf("customer grpc: %w", err)
+	}
+
+	initUpload := app.NewInitUploadUseCase(repo, storage, cfg.UploadURLTTL, customerCli)
 	confirmUpload := app.NewConfirmUploadUseCase(repo, storage, cfg.MaxSize)
 	getDownloadURL := app.NewGetDownloadURLUseCase(repo, storage, cfg.DownloadURLTTL)
 	listDocuments := app.NewListDocumentsUseCase(repo, cfg.DefaultPageSize, cfg.MaxPageSize)

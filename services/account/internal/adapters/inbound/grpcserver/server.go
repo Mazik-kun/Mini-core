@@ -157,6 +157,8 @@ func toGRPCError(err error) error {
 		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, domain.ErrInvalidStatus):
 		return status.Error(codes.Aborted, err.Error())
+	case errors.Is(err, domain.ErrBalanceNotZero):
+		return status.Error(codes.FailedPrecondition, err.Error())
 	default:
 		// Не отдаем внутренние ошибки БД наружу
 		return status.Error(codes.Internal, "internal server error")

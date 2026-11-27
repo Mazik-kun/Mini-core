@@ -17,7 +17,7 @@ import (
 
 	ledgerv1 "github.com/Mazik-kun/mini-core/contracts/gen/bank/ledger/v1"
 	grpcserver "github.com/Mazik-kun/mini-core/services/ledger/internal/adapters/inbound"
-	accountgrpc "github.com/Mazik-kun/mini-core/services/ledger/internal/adapters/outbound/accountgrc"
+	accountgrpc "github.com/Mazik-kun/mini-core/services/ledger/internal/adapters/outbound/accountgrpc"
 	"github.com/Mazik-kun/mini-core/services/ledger/internal/adapters/outbound/kafka"
 	kafkaPkg "github.com/Mazik-kun/mini-core/pkg/kafka"
 	"github.com/Mazik-kun/mini-core/services/ledger/internal/adapters/outbound/postgres"

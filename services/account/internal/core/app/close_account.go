@@ -3,17 +3,23 @@ package app
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/Mazik-kun/mini-core/services/account/internal/core/domain"
 )
 
 type CloseAccountUseCase struct {
-	repo domain.AccountRepository
+	repo      domain.AccountRepository
+	ledgerCli domain.LedgerClient
 }
 
-func NewCloseAccountUseCase(repo domain.AccountRepository) *CloseAccountUseCase {
-	return &CloseAccountUseCase{repo: repo}
+// Обновляем конструктор
+func NewCloseAccountUseCase(repo domain.AccountRepository, ledgerCli domain.LedgerClient) *CloseAccountUseCase {
+	return &CloseAccountUseCase{
+		repo:      repo,
+		ledgerCli: ledgerCli,
+	}
 }
 
 func (uc *CloseAccountUseCase) CloseAccount(ctx context.Context, accountID uuid.UUID) (domain.Account, error) {
@@ -28,8 +34,16 @@ func (uc *CloseAccountUseCase) CloseAccount(ctx context.Context, accountID uuid.
 		return domain.Account{}, fmt.Errorf("%w: account is already closed", domain.ErrInvalidStatus)
 	}
 
-	// TODO: 3. Проверить баланс в Ledger Service. Если balance > 0, вернуть domain.ErrBalanceNotZero.
-	// Пока (до реализации Ledger) мы пропускаем эту проверку.
+	// 3. Проверяем баланс в Ledger
+	balance, err := uc.ledgerCli.GetBalance(ctx, accountID)
+	if err != nil {
+		return domain.Account{}, fmt.Errorf("failed to check balance: %w", err)
+	}
+	log.Printf("DEBUG close account: id=%s balance=%d", accountID, balance) // TODO: убрать после отладки
+	// != 0, а не > 0: счёт с отрицательным балансом закрывать тоже нельзя
+	if balance != 0 {
+		return domain.Account{}, domain.ErrBalanceNotZero
+	}
 
 	// 4. Меняем статус
 	return uc.repo.UpdateStatus(ctx, acc.ID, domain.StatusClosed)

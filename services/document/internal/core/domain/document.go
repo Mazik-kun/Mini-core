@@ -35,6 +35,7 @@ var (
 	ErrObjectNotUploaded       = errors.New("object is not uploaded yet")
 	ErrInvalidStatusTransition = errors.New("invalid status transition")
 	ErrInvalidPageToken        = errors.New("invalid page_token")
+	ErrCustomerAlreadyActive = errors.New("customer is active already")
 )
 
 func (t Type) Valid() bool {

@@ -92,7 +92,7 @@ func (c *Consumer)handleMessage(ctx context.Context, payload []byte){
 		return
 	}
 
-	acc, err := c.openUC.OpenAccount(ctx, cid, "GEL", domain.TypeChecking)
+	acc, err := c.openUC.OpenAccountForApprovedCustomer(ctx, cid, "GEL", domain.TypeChecking)
 	if err != nil{
 		c.log.Error("failed to auto-open account", "customer_id", cid, "error", err)
 		return

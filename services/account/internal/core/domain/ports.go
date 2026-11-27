@@ -16,3 +16,7 @@ type AccountRepository interface {
 type CustomerClient interface {
 	GetCustomerStatus(ctx context.Context, customerID uuid.UUID) (string, error)
 }
+
+type LedgerClient interface {
+	GetBalance(ctx context.Context, accountID uuid.UUID) (int64, error)
+}

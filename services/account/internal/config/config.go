@@ -20,6 +20,8 @@ type Config struct {
 	KafkaBrokers []string
 	KafkaTopic   string
 	KafkaGroupID string
+
+	LedgerGRPCAddr string
 }
 
 func Load() (*Config, error) {
@@ -31,10 +33,13 @@ func Load() (*Config, error) {
 		GRPCAddr:         getEnv("ACCOUNT_GRPC_ADDR", ":50056"),
 		LogLevel:         getEnv("ACCOUNT_LOG_LEVEL", "info"),
 		DatabaseURL:      os.Getenv("ACCOUNT_DATABASE_URL"),
+		
 		CustomerGRPCAddr: getEnv("ACCOUNT_CUSTOMER_GRPC_ADDR", "localhost:50052"),
 		KafkaBrokers:     splitCSV(getEnv("ACCOUNT_KAFKA_BROKERS", "localhost:9092")),
 		KafkaTopic:       getEnv("ACCOUNT_KAFKA_TOPIC", "kyc.events"),
 		KafkaGroupID:     getEnv("ACCOUNT_KAFKA_GROUP_ID", "account-service"),
+		LedgerGRPCAddr: getEnv("ACCOUNT_LEDGER_GRPC_ADDR", "localhost:50057"),
+
 	}
 
 	if cfg.DatabaseURL == "" {

@@ -16,6 +16,7 @@ type Config struct {
 	GRPCAddr    string
 	DatabaseURL string
 
+	CustomerGRPCAddr string
 	JWTPublicKeyPath string
 
 	MinioEndpoint  string
@@ -43,6 +44,7 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		GRPCAddr:         getEnv("DOCUMENT_GRPC_ADDR", ":50054"),
 		DatabaseURL:      os.Getenv("DOCUMENT_DATABASE_URL"),
+		CustomerGRPCAddr: getEnv("DOCUMENT_CUSTOMER_GRPC_ADDR", "localhost:50052"),
 		JWTPublicKeyPath: os.Getenv("JWT_PUBLIC_KEY_PATH"),
 		MinioEndpoint:    os.Getenv("MINIO_ENDPOINT"),
 		MinioPublicEndpoint: strings.TrimSpace(os.Getenv("MINIO_PUBLIC_ENDPOINT")),
